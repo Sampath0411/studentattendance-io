@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import EditStudentDialog from "./EditStudentDialog";
 
 type Student = {
   id: string;
@@ -17,10 +18,11 @@ const StudentList = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const fetchStudents = async () => {
     setLoading(true);
-    // Get student user_ids from user_roles
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "student");
     if (!roles || roles.length === 0) {
       setStudents([]);
@@ -41,13 +43,17 @@ const StudentList = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this student?")) return;
-    // We can only delete from profiles (cascade will handle the rest via auth)
     const { error } = await supabase.from("profiles").delete().eq("id", id);
     if (error) toast.error("Failed to delete student");
     else {
       toast.success("Student deleted");
       fetchStudents();
     }
+  };
+
+  const handleEdit = (student: Student) => {
+    setEditStudent(student);
+    setEditOpen(true);
   };
 
   const filtered = students.filter(
@@ -99,7 +105,10 @@ const StudentList = () => {
                     <td className="py-3 px-4 text-foreground font-mono text-xs">{s.registration_number || "—"}</td>
                     <td className="py-3 px-4 text-foreground">{s.section || "A2"}</td>
                     <td className="py-3 px-4 text-foreground">{s.batch || "—"}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 flex gap-1">
+                      <Button variant="ghost" size="icon" className="rounded-lg text-primary hover:bg-primary/10" onClick={() => handleEdit(s)}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="rounded-lg text-destructive hover:bg-destructive/10" onClick={() => handleDelete(s.id)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -111,6 +120,13 @@ const StudentList = () => {
           </div>
         )}
       </div>
+
+      <EditStudentDialog
+        student={editStudent}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={fetchStudents}
+      />
     </div>
   );
 };
