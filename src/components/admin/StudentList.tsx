@@ -42,12 +42,19 @@ const StudentList = () => {
   useEffect(() => { fetchStudents(); }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this student?")) return;
-    const { error } = await supabase.from("profiles").delete().eq("id", id);
-    if (error) toast.error("Failed to delete student");
-    else {
-      toast.success("Student deleted");
-      fetchStudents();
+    if (!confirm("Are you sure you want to delete this student? This will permanently remove all their data.")) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-student", {
+        body: { action: "delete", student_id: id },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || "Failed to delete student");
+      } else {
+        toast.success("Student deleted permanently");
+        fetchStudents();
+      }
+    } catch {
+      toast.error("Failed to delete student");
     }
   };
 
