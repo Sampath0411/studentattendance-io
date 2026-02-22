@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowLeft } from "lucide-react";
+import { GraduationCap, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ const StudentLogin = () => {
   const navigate = useNavigate();
   const [regNumber, setRegNumber] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,7 +23,6 @@ const StudentLogin = () => {
     }
     setLoading(true);
     try {
-      // Use registration number as email format for auth
       const email = `${regNumber.toLowerCase()}@student.au.edu`;
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
@@ -71,14 +71,23 @@ const StudentLogin = () => {
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-12"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-12 pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 mt-[3px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" className="w-full h-12 rounded-xl text-base" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
