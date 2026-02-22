@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, UserPlus, Users, ClipboardCheck, FileText, LogOut, Menu, X, ChevronLeft,
+  LayoutDashboard, UserPlus, Users, ClipboardCheck, FileText, LogOut, Menu, X, ChevronLeft, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import AddStudent from "@/components/admin/AddStudent";
 import StudentList from "@/components/admin/StudentList";
 import MarkAttendance from "@/components/admin/MarkAttendance";
 import AttendanceRecords from "@/components/admin/AttendanceRecords";
+import Timetable from "@/components/admin/Timetable";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -18,6 +19,7 @@ const navItems = [
   { key: "students", label: "Students List", icon: Users },
   { key: "mark-attendance", label: "Mark Attendance", icon: ClipboardCheck },
   { key: "records", label: "Attendance Records", icon: FileText },
+  { key: "timetable", label: "Timetable", icon: CalendarDays },
 ];
 
 const AdminDashboard = () => {
@@ -45,6 +47,7 @@ const AdminDashboard = () => {
       case "students": return <StudentList />;
       case "mark-attendance": return <MarkAttendance />;
       case "records": return <AttendanceRecords />;
+      case "timetable": return <Timetable />;
       default: return <AdminOverview />;
     }
   };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, ArrowLeft } from "lucide-react";
@@ -6,13 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If already logged in as admin, redirect immediately
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +37,7 @@ const AdminLogin = () => {
         toast.error("Invalid admin credentials");
       } else {
         toast.success("Admin login successful!");
-        navigate("/admin/dashboard");
+        // Don't navigate here - the useEffect will handle it once AuthContext updates
       }
     } catch {
       toast.error("An error occurred");
