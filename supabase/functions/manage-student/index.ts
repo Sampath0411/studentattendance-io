@@ -33,7 +33,83 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const dbClient = createClient(supabaseUrl, serviceRoleKey);
+    const authHeaders = {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      "Content-Type": "application/json",
+    };
+
+    // GoTrue admin helpers
+    async function createAuthUser(email: string, password: string, name: string, regNum: string) {
+      const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          email, password, email_confirm: true,
+          user_metadata: { name, registration_number: regNum },
+        }),
+      });
+      const data = await resp.json();
+      return { data, ok: resp.ok, status: resp.status };
+    }
+
+    async function findAuthUserByEmail(email: string) {
+      // Query the auth.users table directly via the database
+      const { data, error } = await dbClient.rpc('get_user_id_by_email', { _email: email });
+      if (error || !data) {
+        // Fallback: try GoTrue API with pagination
+        let page = 1;
+        while (true) {
+          const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=100`, {
+            headers: authHeaders,
+          });
+          if (!resp.ok) return null;
+          const result = await resp.json();
+          const users = result.users || [];
+          const found = users.find((u: any) => u.email === email);
+          if (found) return found;
+          if (users.length < 100) return null;
+          page++;
+        }
+      }
+      return { id: data };
+    }
+
+    async function updateAuthUser(userId: string, updates: any) {
+      const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+        method: "PUT",
+        headers: authHeaders,
+        body: JSON.stringify(updates),
+      });
+      return resp.ok;
+    }
+
+    async function deleteAuthUser(userId: string) {
+      const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+      return resp.ok;
+    }
+
+    async function recoverExistingUser(email: string, password: string, name: string, registration_number: string, batch: string | null) {
+      const existing = await findAuthUserByEmail(email);
+      if (!existing) return null;
+      await updateAuthUser(existing.id, {
+        password,
+        user_metadata: { name, registration_number },
+      });
+      await dbClient.from("profiles").upsert({
+        id: existing.id, name, registration_number, batch: batch || null,
+      }, { onConflict: "id" });
+      const { data: existingRole } = await dbClient.from("user_roles").select("id").eq("user_id", existing.id).eq("role", "student");
+      if (!existingRole || existingRole.length === 0) {
+        await dbClient.from("user_roles").insert({ user_id: existing.id, role: "student" });
+      }
+      return existing.id;
+    }
+
     const { action, ...payload } = await req.json();
 
     if (action === "create") {
@@ -45,50 +121,28 @@ Deno.serve(async (req) => {
       }
       const email = `${registration_number.toLowerCase()}@student.au.edu`;
 
-      // Try to create the user
-      const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { name, registration_number },
-      });
+      const result = await createAuthUser(email, password, name, registration_number);
 
-      if (createErr) {
-        // If user already exists in auth, find them and ensure profile/role exist
-        if (createErr.message.includes("already been registered")) {
-          const { data: { users } } = await adminClient.auth.admin.listUsers();
-          const existing = users?.find((u: any) => u.email === email);
-          if (existing) {
-            // Update user metadata
-            await adminClient.auth.admin.updateUser(existing.id, {
-              password,
-              user_metadata: { name, registration_number },
-            });
-            // Upsert profile
-            await adminClient.from("profiles").upsert({
-              id: existing.id,
-              name,
-              registration_number,
-              batch: batch || null,
-            }, { onConflict: "id" });
-            // Ensure student role exists
-            const { data: existingRole } = await adminClient.from("user_roles").select("id").eq("user_id", existing.id).eq("role", "student");
-            if (!existingRole || existingRole.length === 0) {
-              await adminClient.from("user_roles").insert({ user_id: existing.id, role: "student" });
-            }
-            return new Response(JSON.stringify({ success: true, user_id: existing.id, recovered: true }), {
+      if (!result.ok) {
+        const errMsg = result.data?.msg || result.data?.message || result.data?.error || "Failed to create user";
+        if (typeof errMsg === "string" && errMsg.includes("already been registered")) {
+          const recoveredId = await recoverExistingUser(email, password, name, registration_number, batch);
+          if (recoveredId) {
+            return new Response(JSON.stringify({ success: true, user_id: recoveredId, recovered: true }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
         }
-        return new Response(JSON.stringify({ error: createErr.message }), {
+        return new Response(JSON.stringify({ error: errMsg }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (batch && newUser.user) {
-        await adminClient.from("profiles").update({ batch }).eq("id", newUser.user.id);
+
+      const userId = result.data.id;
+      if (batch && userId) {
+        await dbClient.from("profiles").update({ batch }).eq("id", userId);
       }
-      return new Response(JSON.stringify({ success: true, user_id: newUser.user?.id }), {
+      return new Response(JSON.stringify({ success: true, user_id: userId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -108,37 +162,22 @@ Deno.serve(async (req) => {
           continue;
         }
         const email = `${registration_number.toLowerCase()}@student.au.edu`;
-        const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
-          email,
-          password: password.length >= 6 ? password : "Student@123",
-          email_confirm: true,
-          user_metadata: { name, registration_number },
-        });
-        if (createErr) {
-          if (createErr.message.includes("already been registered")) {
-            // Recover existing auth user
-            const { data: { users } } = await adminClient.auth.admin.listUsers();
-            const existing = users?.find((u: any) => u.email === email);
-            if (existing) {
-              await adminClient.auth.admin.updateUser(existing.id, {
-                password: password.length >= 6 ? password : "Student@123",
-                user_metadata: { name, registration_number },
-              });
-              await adminClient.from("profiles").upsert({
-                id: existing.id, name, registration_number, batch: batch || null,
-              }, { onConflict: "id" });
-              const { data: existingRole } = await adminClient.from("user_roles").select("id").eq("user_id", existing.id).eq("role", "student");
-              if (!existingRole || existingRole.length === 0) {
-                await adminClient.from("user_roles").insert({ user_id: existing.id, role: "student" });
-              }
+        const effectivePassword = password.length >= 6 ? password : "Student@123";
+
+        const result = await createAuthUser(email, effectivePassword, name, registration_number);
+        if (!result.ok) {
+          const errMsg = result.data?.msg || result.data?.message || result.data?.error || "Failed";
+          if (typeof errMsg === "string" && errMsg.includes("already been registered")) {
+            const recoveredId = await recoverExistingUser(email, effectivePassword, name, registration_number, batch);
+            if (recoveredId) {
               results.push({ registration_number, success: true, recovered: true });
               continue;
             }
           }
-          results.push({ registration_number, success: false, error: createErr.message });
+          results.push({ registration_number, success: false, error: errMsg });
         } else {
-          if (batch && newUser.user) {
-            await adminClient.from("profiles").update({ batch }).eq("id", newUser.user.id);
+          if (batch && result.data.id) {
+            await dbClient.from("profiles").update({ batch }).eq("id", result.data.id);
           }
           results.push({ registration_number, success: true });
         }
@@ -155,13 +194,12 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Delete attendance, profile, role, then auth user
-      await adminClient.from("attendance").delete().eq("student_id", student_id);
-      await adminClient.from("user_roles").delete().eq("user_id", student_id);
-      await adminClient.from("profiles").delete().eq("id", student_id);
-      const { error: delErr } = await adminClient.auth.admin.deleteUser(student_id);
-      if (delErr) {
-        return new Response(JSON.stringify({ error: delErr.message }), {
+      await dbClient.from("attendance").delete().eq("student_id", student_id);
+      await dbClient.from("user_roles").delete().eq("user_id", student_id);
+      await dbClient.from("profiles").delete().eq("id", student_id);
+      const deleted = await deleteAuthUser(student_id);
+      if (!deleted) {
+        return new Response(JSON.stringify({ error: "Failed to delete auth user" }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -173,8 +211,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal error" }), {
+  } catch (err: any) {
+    console.error("manage-student error:", err);
+    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
