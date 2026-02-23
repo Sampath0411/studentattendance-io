@@ -22,14 +22,15 @@ type EditStudentDialogProps = {
 
 const EditStudentDialog = ({ student, open, onOpenChange, onSaved }: EditStudentDialogProps) => {
   const [name, setName] = useState(student?.name || "");
+  const [regNumber, setRegNumber] = useState(student?.registration_number || "");
   const [batch, setBatch] = useState(student?.batch || "");
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Sync state when student changes
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen && student) {
       setName(student.name);
+      setRegNumber(student.registration_number || "");
       setBatch(student.batch || "");
       setNewPassword("");
     }
@@ -44,10 +45,14 @@ const EditStudentDialog = ({ student, open, onOpenChange, onSaved }: EditStudent
     }
     setSaving(true);
     try {
-      // Update profile
+      // Update profile including registration_number
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ name: name.trim(), batch: batch.trim() || null })
+        .update({
+          name: name.trim(),
+          batch: batch.trim() || null,
+          registration_number: regNumber.trim() || null,
+        })
         .eq("id", student.id);
 
       if (profileError) {
@@ -56,7 +61,7 @@ const EditStudentDialog = ({ student, open, onOpenChange, onSaved }: EditStudent
         return;
       }
 
-      // Reset password via edge function if provided
+      // Reset password if provided
       if (newPassword.trim()) {
         if (newPassword.length < 6) {
           toast.error("Password must be at least 6 characters");
@@ -93,48 +98,24 @@ const EditStudentDialog = ({ student, open, onOpenChange, onSaved }: EditStudent
         <div className="space-y-4 py-2">
           <div>
             <Label>Full Name</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter student name"
-              className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11"
-            />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter student name" className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11" />
           </div>
           <div>
             <Label>Registration Number</Label>
-            <Input
-              value={student?.registration_number || ""}
-              disabled
-              className="mt-1.5 bg-background/30 border-border/30 rounded-xl h-11 text-muted-foreground"
-            />
+            <Input value={regNumber} onChange={(e) => setRegNumber(e.target.value)} placeholder="Enter registration number" className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11" />
           </div>
           <div>
             <Label>Batch</Label>
-            <Input
-              value={batch}
-              onChange={(e) => setBatch(e.target.value)}
-              placeholder="e.g., Batch 1"
-              className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11"
-            />
+            <Input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="e.g., Batch 1" className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11" />
           </div>
           <div>
             <Label>New Password (leave blank to keep current)</Label>
-            <Input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Min 6 characters"
-              className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11"
-            />
+            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 6 characters" className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-11" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl border-border/50">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving} className="rounded-xl">
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl border-border/50">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving} className="rounded-xl">{saving ? "Saving..." : "Save Changes"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

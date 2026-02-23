@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Filter } from "lucide-react";
+import { Filter, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ const AttendanceRecords = () => {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const fetchRecords = async (from?: string, to?: string) => {
     setLoading(true);
@@ -57,6 +58,32 @@ const AttendanceRecords = () => {
     else toast.error("Select both dates");
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm("Are you sure you want to delete ALL attendance records? This action cannot be undone.")) return;
+    setDeleting(true);
+    // Delete all records visible (filtered or all)
+    const ids = records.map((r) => r.id);
+    if (ids.length === 0) {
+      toast.error("No records to delete");
+      setDeleting(false);
+      return;
+    }
+    // Delete in batches of 100
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+      const { error } = await supabase.from("attendance").delete().in("id", batch);
+      if (error) {
+        toast.error("Failed to delete some records");
+        setDeleting(false);
+        fetchRecords();
+        return;
+      }
+    }
+    toast.success(`Deleted ${ids.length} records`);
+    setRecords([]);
+    setDeleting(false);
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-6">Attendance Records</h1>
@@ -76,6 +103,10 @@ const AttendanceRecords = () => {
           </Button>
           <Button variant="outline" onClick={() => { setStartDate(""); setEndDate(""); fetchRecords(); }} className="rounded-xl border-border/50">
             Clear
+          </Button>
+          <Button variant="destructive" onClick={handleDeleteAll} disabled={deleting || records.length === 0} className="rounded-xl">
+            <Trash2 className="w-4 h-4 mr-2" />
+            {deleting ? "Deleting..." : "Delete All"}
           </Button>
         </div>
 

@@ -6,14 +6,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { RotateCcw } from "lucide-react";
 
 type Student = { id: string; name: string; registration_number: string | null };
 type Subject = { id: string; subject_name: string };
 type MarkStatus = "present" | "absent" | "no_class";
 
+// Timetable: subjects per day (matches Timetable.tsx)
+const daySubjects: Record<string, string[]> = {
+  Monday: ["LA Lab", "Physics Lab", "Data Structures Using C"],
+  Tuesday: ["Elements of Electronics Engineering", "Mathematics-II", "Self Study / Library"],
+  Wednesday: ["Data Structures Using C", "Physics", "DS Lab", "LA Lab"],
+  Thursday: ["Digital Logic Design", "Mathematics-II", "Physics Lab", "DS Lab"],
+  Friday: ["Digital Logic Design", "Physics", "Elements of Electronics Engineering"],
+  Saturday: ["Self Study / Library", "Swachh Bharat"],
+};
+
+const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 const MarkAttendance = () => {
   const [students, setStudents] = useState<Student[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [marks, setMarks] = useState<Record<string, MarkStatus>>({});
@@ -33,15 +46,34 @@ const MarkAttendance = () => {
           .in("id", ids)
           .order("name");
         setStudents((profilesData as Student[]) || []);
-        // Initialize all as present
         const initial: Record<string, MarkStatus> = {};
         (profilesData || []).forEach((s: any) => { initial[s.id] = "present"; });
         setMarks(initial);
       }
-      setSubjects((subjectsRes.data as Subject[]) || []);
+      setAllSubjects((subjectsRes.data as Subject[]) || []);
     };
     fetch();
   }, []);
+
+  // Get subjects for the selected date's day
+  const getFilteredSubjects = (): Subject[] => {
+    if (!selectedDate) return allSubjects;
+    const date = new Date(selectedDate + "T00:00:00");
+    const dayName = dayNames[date.getDay()];
+    const todaySubjectNames = daySubjects[dayName];
+    if (!todaySubjectNames) return allSubjects;
+    return allSubjects.filter((s) => todaySubjectNames.includes(s.subject_name));
+  };
+
+  const filteredSubjects = getFilteredSubjects();
+
+  // Reset subject selection when date changes and current subject isn't in the new day's list
+  useEffect(() => {
+    if (selectedSubject && filteredSubjects.length > 0) {
+      const stillValid = filteredSubjects.some((s) => s.id === selectedSubject);
+      if (!stillValid) setSelectedSubject("");
+    }
+  }, [selectedDate]);
 
   const toggleStatus = (studentId: string) => {
     setMarks((prev) => {
@@ -55,6 +87,12 @@ const MarkAttendance = () => {
     const updated: Record<string, MarkStatus> = {};
     students.forEach((s) => { updated[s.id] = status; });
     setMarks(updated);
+  };
+
+  const clearAll = () => {
+    const cleared: Record<string, MarkStatus> = {};
+    students.forEach((s) => { cleared[s.id] = "present"; });
+    setMarks(cleared);
   };
 
   const handleSubmit = async () => {
@@ -90,13 +128,13 @@ const MarkAttendance = () => {
             <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="mt-1 bg-background/50 border-border/50 rounded-xl" />
           </div>
           <div className="flex-1">
-            <Label>Subject</Label>
+            <Label>Subject {filteredSubjects.length < allSubjects.length && <span className="text-xs text-muted-foreground">(for {dayNames[new Date(selectedDate + "T00:00:00").getDay()]})</span>}</Label>
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
               <SelectTrigger className="mt-1 bg-background/50 border-border/50 rounded-xl">
                 <SelectValue placeholder="Select subject" />
               </SelectTrigger>
               <SelectContent>
-                {subjects.map((s) => (
+                {filteredSubjects.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.subject_name}</SelectItem>
                 ))}
               </SelectContent>
@@ -105,7 +143,7 @@ const MarkAttendance = () => {
         </div>
 
         {/* Bulk actions */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={() => markAll("present")}>
             All Present
           </Button>
@@ -114,6 +152,10 @@ const MarkAttendance = () => {
           </Button>
           <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={() => markAll("no_class")}>
             No Class
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-xl border-border/50 text-muted-foreground" onClick={clearAll}>
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            Clear Response
           </Button>
         </div>
 

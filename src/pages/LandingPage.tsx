@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Shield } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const FloatingParticle = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
@@ -73,15 +73,6 @@ const LandingPage = () => {
           >
             <GraduationCap className="mr-2 w-5 h-5" />
             Student Login
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="text-base px-8 py-6 rounded-2xl border-border/50 bg-card/30 hover:bg-card/60"
-            onClick={() => navigate("/admin-login")}
-          >
-            <Shield className="mr-2 w-5 h-5" />
-            Admin Login
           </Button>
         </motion.div>
 
