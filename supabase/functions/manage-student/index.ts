@@ -44,13 +44,43 @@ Deno.serve(async (req) => {
         });
       }
       const email = `${registration_number.toLowerCase()}@student.au.edu`;
+
+      // Try to create the user
       const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
         user_metadata: { name, registration_number },
       });
+
       if (createErr) {
+        // If user already exists in auth, find them and ensure profile/role exist
+        if (createErr.message.includes("already been registered")) {
+          const { data: { users } } = await adminClient.auth.admin.listUsers();
+          const existing = users?.find((u: any) => u.email === email);
+          if (existing) {
+            // Update user metadata
+            await adminClient.auth.admin.updateUser(existing.id, {
+              password,
+              user_metadata: { name, registration_number },
+            });
+            // Upsert profile
+            await adminClient.from("profiles").upsert({
+              id: existing.id,
+              name,
+              registration_number,
+              batch: batch || null,
+            }, { onConflict: "id" });
+            // Ensure student role exists
+            const { data: existingRole } = await adminClient.from("user_roles").select("id").eq("user_id", existing.id).eq("role", "student");
+            if (!existingRole || existingRole.length === 0) {
+              await adminClient.from("user_roles").insert({ user_id: existing.id, role: "student" });
+            }
+            return new Response(JSON.stringify({ success: true, user_id: existing.id, recovered: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
         return new Response(JSON.stringify({ error: createErr.message }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -85,6 +115,26 @@ Deno.serve(async (req) => {
           user_metadata: { name, registration_number },
         });
         if (createErr) {
+          if (createErr.message.includes("already been registered")) {
+            // Recover existing auth user
+            const { data: { users } } = await adminClient.auth.admin.listUsers();
+            const existing = users?.find((u: any) => u.email === email);
+            if (existing) {
+              await adminClient.auth.admin.updateUser(existing.id, {
+                password: password.length >= 6 ? password : "Student@123",
+                user_metadata: { name, registration_number },
+              });
+              await adminClient.from("profiles").upsert({
+                id: existing.id, name, registration_number, batch: batch || null,
+              }, { onConflict: "id" });
+              const { data: existingRole } = await adminClient.from("user_roles").select("id").eq("user_id", existing.id).eq("role", "student");
+              if (!existingRole || existingRole.length === 0) {
+                await adminClient.from("user_roles").insert({ user_id: existing.id, role: "student" });
+              }
+              results.push({ registration_number, success: true, recovered: true });
+              continue;
+            }
+          }
           results.push({ registration_number, success: false, error: createErr.message });
         } else {
           if (batch && newUser.user) {
