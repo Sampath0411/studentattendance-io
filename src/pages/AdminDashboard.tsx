@@ -135,12 +135,23 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
-        {/* Mobile Header */}
-        <header className="md:hidden border-b border-border/30 backdrop-blur-md bg-background/30 p-4 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="rounded-xl">
-            <Menu className="w-5 h-5" />
+        {/* Top Header */}
+        <header className="border-b border-border/30 backdrop-blur-md bg-background/30 p-4 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="rounded-xl md:hidden">
+              <Menu className="w-5 h-5" />
+            </Button>
+            <h1 className="font-bold text-foreground">Admin Panel</h1>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-200"
+            onClick={handleSignOut}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
           </Button>
-          <h1 className="font-bold text-foreground">Admin Panel</h1>
         </header>
 
         <main className="flex-1 p-4 md:p-8 overflow-auto">
