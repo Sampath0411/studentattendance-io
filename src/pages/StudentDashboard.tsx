@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { LogOut, BookOpen, UserCheck, UserX, CalendarDays, Filter } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { LogOut, BookOpen, UserCheck, UserX, CalendarDays, Filter, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CircularProgress from "@/components/CircularProgress";
+import TodayClassBanner from "@/components/TodayClassBanner";
 import { SkeletonCard, SkeletonTable, SkeletonCircle } from "@/components/Skeletons";
 import { toast } from "sonner";
 
@@ -19,6 +20,8 @@ type AttendanceRecord = {
   remarks: string | null;
   subject_name: string;
 };
+
+const MIN_RECORDS_FOR_PERCENTAGE = 3;
 
 const StudentDashboard = () => {
   const { user, profile, signOut, loading: authLoading } = useAuth();
@@ -87,7 +90,8 @@ const StudentDashboard = () => {
     const absent = validRecords.filter((r) => r.status === "absent").length;
     const total = validRecords.length;
     const percentage = total > 0 ? (present / total) * 100 : 0;
-    return { present, absent, total, percentage };
+    const hasEnoughRecords = total >= MIN_RECORDS_FOR_PERCENTAGE;
+    return { present, absent, total, percentage, hasEnoughRecords };
   }, [records]);
 
   const getDayName = (dateStr: string) => {
@@ -106,20 +110,38 @@ const StudentDashboard = () => {
       {/* Header */}
       <header className="border-b border-border/30 backdrop-blur-md bg-background/30 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <h1 className="text-xl font-bold text-foreground">
               Welcome, <span className="text-gradient">{profile?.name || "Student"}</span>
             </h1>
             <p className="text-sm text-muted-foreground">{profile?.registration_number || ""}</p>
-          </div>
-          <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-200"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </motion.div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Today's Classes Banner */}
+        <TodayClassBanner />
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Attendance Circle */}
@@ -131,6 +153,25 @@ const StudentDashboard = () => {
           >
             {loading ? (
               <SkeletonCircle />
+            ) : !stats.hasEnoughRecords ? (
+              <motion.div
+                className="flex flex-col items-center text-center gap-3"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="p-3 rounded-full bg-muted/50">
+                  <Info className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Attendance percentage will appear after{" "}
+                  <span className="font-semibold text-foreground">{MIN_RECORDS_FOR_PERCENTAGE}</span>{" "}
+                  class records
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.total} of {MIN_RECORDS_FOR_PERCENTAGE} recorded
+                </p>
+              </motion.div>
             ) : (
               <CircularProgress percentage={stats.percentage} />
             )}
@@ -145,7 +186,12 @@ const StudentDashboard = () => {
             </>
           ) : (
             <>
-              <motion.div className="glass-card rounded-2xl p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <motion.div
+                className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <BookOpen className="w-5 h-5 text-primary" />
                   <span className="text-sm text-muted-foreground">Total Classes</span>
@@ -153,7 +199,12 @@ const StudentDashboard = () => {
                 <p className="text-3xl font-bold text-foreground">{stats.total}</p>
               </motion.div>
 
-              <motion.div className="glass-card rounded-2xl p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <motion.div
+                className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <UserCheck className="w-5 h-5 text-success" />
                   <span className="text-sm text-muted-foreground">Present</span>
@@ -161,7 +212,12 @@ const StudentDashboard = () => {
                 <p className="text-3xl font-bold text-success">{stats.present}</p>
               </motion.div>
 
-              <motion.div className="glass-card rounded-2xl p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <motion.div
+                className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <UserX className="w-5 h-5 text-destructive" />
                   <span className="text-sm text-muted-foreground">Absent</span>
@@ -177,7 +233,7 @@ const StudentDashboard = () => {
           className="glass-card rounded-2xl p-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
         >
           <div className="flex items-center gap-2 mb-4">
             <CalendarDays className="w-5 h-5 text-primary" />
@@ -193,15 +249,31 @@ const StudentDashboard = () => {
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1 bg-background/50 border-border/50 rounded-xl" />
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleFilter} className="rounded-xl">
+              <Button
+                onClick={handleFilter}
+                className="rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
               </Button>
-              {filterActive && (
-                <Button variant="outline" onClick={clearFilter} className="rounded-xl border-border/50">
-                  Clear
-                </Button>
-              )}
+              <AnimatePresence>
+                {filterActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Button
+                      variant="outline"
+                      onClick={clearFilter}
+                      className="rounded-xl border-border/50 transition-all duration-200 hover:scale-105 active:scale-95"
+                    >
+                      Clear
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>
@@ -211,13 +283,20 @@ const StudentDashboard = () => {
           className="glass-card rounded-2xl p-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
         >
           <h2 className="text-lg font-semibold text-foreground mb-4">Attendance History</h2>
           {loading ? (
             <SkeletonTable />
           ) : records.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No attendance records found.</p>
+            <motion.p
+              className="text-center text-muted-foreground py-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              No attendance records found.
+            </motion.p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -231,26 +310,32 @@ const StudentDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record) => (
-                    <tr key={record.id} className="border-b border-border/10 hover:bg-card/50 transition-colors">
+                  {records.map((record, index) => (
+                    <motion.tr
+                      key={record.id}
+                      className="border-b border-border/10 hover:bg-card/50 transition-colors duration-150"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03, duration: 0.3 }}
+                    >
                       <td className="py-3 px-4 text-foreground">{record.date}</td>
                       <td className="py-3 px-4 text-foreground">{getDayName(record.date)}</td>
                       <td className="py-3 px-4 text-foreground">{record.subject_name}</td>
                       <td className="py-3 px-4">
                         <Badge
-                          className={
+                          className={`transition-all duration-200 ${
                             record.status === "present"
                               ? "bg-success/20 text-success border-success/30"
                               : record.status === "absent"
                               ? "bg-destructive/20 text-destructive border-destructive/30"
                               : "bg-muted text-muted-foreground border-border/30"
-                          }
+                          }`}
                         >
                           {record.status === "no_class" ? "No Class" : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{record.remarks || "—"}</td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>

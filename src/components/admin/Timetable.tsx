@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { timetable, days, type Period } from "@/data/timetable";
 
 const subjectColors: Record<string, string> = {
   "LA Lab": "bg-[hsl(270,60%,30%)] text-[hsl(270,80%,85%)] border-[hsl(270,50%,40%)]",
@@ -13,70 +14,42 @@ const subjectColors: Record<string, string> = {
   "Swachh Bharat": "bg-muted text-muted-foreground border-border/30",
 };
 
-type Period = { subject: string; note?: string };
-
-const timetable: Record<string, Period[]> = {
-  Monday: [
-    { subject: "LA Lab", note: "/ Physics Lab (Batch-based)" },
-    { subject: "Data Structures Using C" },
-  ],
-  Tuesday: [
-    { subject: "Elements of Electronics Engineering" },
-    { subject: "Mathematics-II" },
-    { subject: "Self Study / Library", note: "No Class" },
-  ],
-  Wednesday: [
-    { subject: "Data Structures Using C" },
-    { subject: "Physics" },
-    { subject: "DS Lab", note: "/ LA Lab (Batch-based)" },
-  ],
-  Thursday: [
-    { subject: "Digital Logic Design" },
-    { subject: "Mathematics-II" },
-    { subject: "Physics Lab", note: "/ DS Lab (Batch-based)" },
-  ],
-  Friday: [
-    { subject: "Digital Logic Design" },
-    { subject: "Physics" },
-    { subject: "Elements of Electronics Engineering" },
-  ],
-  Saturday: [
-    { subject: "Self Study / Library", note: "No Class" },
-    { subject: "Swachh Bharat", note: "No Class" },
-  ],
-};
-
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 const getColor = (subject: string) => {
   return subjectColors[subject] || "bg-card text-foreground border-border/30";
 };
 
 const Timetable = () => {
+  const allSubjects = Array.from(
+    new Set(
+      Object.values(timetable)
+        .flat()
+        .map((p) => p.subject)
+    )
+  );
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-2">Weekly Timetable</h1>
-      <p className="text-muted-foreground text-sm mb-6">Section A2 – CSSE, AU College of Engineering</p>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Weekly Timetable — Section A2</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {days.map((day, dayIdx) => (
+        {days.map((day, i) => (
           <motion.div
             key={day}
             className="glass-card rounded-2xl p-5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: dayIdx * 0.08 }}
+            transition={{ delay: i * 0.08, duration: 0.4 }}
           >
             <h3 className="text-lg font-semibold text-foreground mb-3">{day}</h3>
             <div className="space-y-2">
-              {timetable[day].map((period, i) => (
+              {(timetable[day] || []).map((period, j) => (
                 <div
-                  key={i}
-                  className={`rounded-xl border px-4 py-3 text-sm font-medium ${getColor(period.subject)}`}
+                  key={j}
+                  className={`px-3 py-2 rounded-xl text-sm border ${getColor(period.subject)}`}
                 >
-                  <span>{period.subject}</span>
+                  <span className="font-medium">{period.subject}</span>
                   {period.note && (
-                    <span className="block text-xs opacity-70 mt-0.5">{period.note}</span>
+                    <span className="text-xs opacity-70 ml-1">{period.note}</span>
                   )}
                 </div>
               ))}
@@ -86,19 +59,17 @@ const Timetable = () => {
       </div>
 
       {/* Legend */}
-      <div className="mt-8 glass-card rounded-2xl p-5">
+      <div className="glass-card rounded-2xl p-5 mt-6">
         <h3 className="text-sm font-semibold text-foreground mb-3">Subject Legend</h3>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(subjectColors)
-            .filter(([name]) => name !== "Swachh Bharat" && name !== "Self Study / Library")
-            .map(([name, cls]) => (
-              <span key={name} className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${cls}`}>
-                {name}
-              </span>
-            ))}
-          <span className="rounded-lg border px-3 py-1.5 text-xs font-medium bg-muted text-muted-foreground border-border/30">
-            No Class
-          </span>
+          {allSubjects.map((sub) => (
+            <span
+              key={sub}
+              className={`px-3 py-1 rounded-lg text-xs border ${getColor(sub)}`}
+            >
+              {sub}
+            </span>
+          ))}
         </div>
       </div>
     </div>
