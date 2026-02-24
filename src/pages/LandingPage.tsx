@@ -6,43 +6,23 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import auLogo from "@/assets/au-logo.png";
 
 const ShootingStar = ({ delay, top }: { delay: number; top: string }) => (
-  <motion.div
-    className="absolute h-[2px] rounded-full"
+  <div
+    className="absolute h-[2px] rounded-full animate-shooting-star will-change-transform"
     style={{
       top,
       left: "-10%",
       width: "80px",
       background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.6), transparent)",
-    }}
-    animate={{ x: ["0vw", "120vw"] }}
-    transition={{
-      duration: 4 + Math.random() * 3,
-      repeat: Infinity,
-      ease: "linear",
-      delay,
+      animationDelay: `${delay}s`,
+      animationDuration: `${5 + delay}s`,
     }}
   />
 );
 
 const SmallStar = ({ x, y, delay }: { x: string; y: string; delay: number }) => (
-  <motion.div
-    className="absolute w-1 h-1 rounded-full bg-primary/30"
-    style={{ left: x, top: y }}
-    animate={{ opacity: [0.1, 0.6, 0.1], scale: [0.8, 1.2, 0.8] }}
-    transition={{ duration: 3 + delay, repeat: Infinity, ease: "easeInOut", delay }}
-  />
-);
-
-const FloatingOrb = ({ className, delay }: { className: string; delay: number }) => (
-  <motion.div
-    className={className}
-    animate={{
-      scale: [1, 1.15, 1],
-      opacity: [0.08, 0.15, 0.08],
-      x: [0, 20, -10, 0],
-      y: [0, -15, 10, 0],
-    }}
-    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay }}
+  <div
+    className="absolute w-1 h-1 rounded-full bg-primary/30 animate-twinkle will-change-[opacity]"
+    style={{ left: x, top: y, animationDelay: `${delay}s` }}
   />
 );
 
@@ -81,10 +61,10 @@ const LandingPage = () => {
       <SmallStar x="75%" y="90%" delay={1.4} />
       <SmallStar x="95%" y="15%" delay={3} />
 
-      {/* Animated gradient orbs */}
-      <FloatingOrb delay={0} className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-      <FloatingOrb delay={2} className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
-      <FloatingOrb delay={4} className="absolute top-1/2 right-1/3 w-64 h-64 bg-primary/5 rounded-full blur-2xl" />
+      {/* Gradient orbs - pure CSS */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-slow will-change-[opacity]" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-pulse-slow will-change-[opacity]" style={{ animationDelay: "2s" }} />
+      <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-primary/5 rounded-full blur-2xl animate-pulse-slow will-change-[opacity]" style={{ animationDelay: "4s" }} />
 
       <div className="relative z-10 text-center px-4 max-w-2xl w-full">
         <motion.div
