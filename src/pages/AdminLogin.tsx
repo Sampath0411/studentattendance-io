@@ -58,7 +58,7 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen gradient-hero flex items-center justify-center px-4 relative overflow-y-auto">
       {/* Background animations */}
       <FloatingOrb delay={0} className="absolute top-1/3 right-1/4 w-72 h-72 bg-destructive/8 rounded-full blur-3xl" />
       <FloatingOrb delay={2} className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-primary/8 rounded-full blur-3xl" />
