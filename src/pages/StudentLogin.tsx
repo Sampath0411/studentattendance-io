@@ -9,15 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const FloatingOrb = ({ className, delay }: { className: string; delay: number }) => (
-  <motion.div
-    className={className}
-    animate={{
-      scale: [1, 1.2, 1],
-      opacity: [0.06, 0.12, 0.06],
-      x: [0, 15, -10, 0],
-      y: [0, -10, 8, 0],
-    }}
-    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay }}
+  <div
+    className={`${className} animate-pulse-slow will-change-[opacity]`}
+    style={{ animationDelay: `${delay}s` }}
   />
 );
 
@@ -51,7 +45,7 @@ const StudentLogin = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center px-4 relative overflow-y-auto">
+    <div className="min-h-[100dvh] gradient-hero flex items-center justify-center px-4 py-6 relative overflow-y-auto">
       {/* Background animations */}
       <FloatingOrb delay={0} className="absolute top-1/3 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
       <FloatingOrb delay={3} className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-accent/8 rounded-full blur-3xl" />
