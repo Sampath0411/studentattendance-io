@@ -6,6 +6,30 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Validation helpers
+const REGEX_ALPHANUM = /^[A-Za-z0-9]+$/;
+const REGEX_NAME = /^[A-Za-z0-9\s.\-']+$/;
+const MAX_NAME_LEN = 100;
+const MAX_REG_LEN = 50;
+const MAX_PASSWORD_LEN = 128;
+const MIN_PASSWORD_LEN = 6;
+const MAX_BATCH_LEN = 50;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateStudent(s: any): string | null {
+  if (!s.name || typeof s.name !== "string" || s.name.trim().length === 0 || s.name.length > MAX_NAME_LEN) return "Invalid name";
+  if (!REGEX_NAME.test(s.name)) return "Name contains invalid characters";
+  if (!s.registration_number || typeof s.registration_number !== "string" || s.registration_number.length > MAX_REG_LEN) return "Invalid registration number";
+  if (!REGEX_ALPHANUM.test(s.registration_number)) return "Registration number must be alphanumeric";
+  if (!s.password || typeof s.password !== "string" || s.password.length < MIN_PASSWORD_LEN || s.password.length > MAX_PASSWORD_LEN) return `Password must be ${MIN_PASSWORD_LEN}-${MAX_PASSWORD_LEN} characters`;
+  if (s.batch && (typeof s.batch !== "string" || s.batch.length > MAX_BATCH_LEN)) return "Invalid batch";
+  return null;
+}
+
+function validateUUID(id: string): boolean {
+  return typeof id === "string" && UUID_REGEX.test(id);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,10 +79,8 @@ Deno.serve(async (req) => {
     }
 
     async function findAuthUserByEmail(email: string) {
-      // Query the auth.users table directly via the database
       const { data, error } = await dbClient.rpc('get_user_id_by_email', { _email: email });
       if (error || !data) {
-        // Fallback: try GoTrue API with pagination
         let page = 1;
         while (true) {
           const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=100`, {
@@ -114,8 +136,9 @@ Deno.serve(async (req) => {
 
     if (action === "create") {
       const { name, registration_number, password, batch } = payload;
-      if (!name || !registration_number || !password || password.length < 6) {
-        return new Response(JSON.stringify({ error: "Invalid input" }), {
+      const validationError = validateStudent({ name, registration_number, password, batch });
+      if (validationError) {
+        return new Response(JSON.stringify({ error: validationError }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -124,7 +147,7 @@ Deno.serve(async (req) => {
       const result = await createAuthUser(email, password, name, registration_number);
 
       if (!result.ok) {
-        const errMsg = result.data?.msg || result.data?.message || result.data?.error || "Failed to create user";
+        const errMsg = result.data?.msg || result.data?.message || result.data?.error || "";
         if (typeof errMsg === "string" && errMsg.includes("already been registered")) {
           const recoveredId = await recoverExistingUser(email, password, name, registration_number, batch);
           if (recoveredId) {
@@ -133,7 +156,7 @@ Deno.serve(async (req) => {
             });
           }
         }
-        return new Response(JSON.stringify({ error: errMsg }), {
+        return new Response(JSON.stringify({ error: "Failed to create student" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -149,24 +172,25 @@ Deno.serve(async (req) => {
 
     if (action === "create_bulk") {
       const { students } = payload;
-      if (!Array.isArray(students) || students.length === 0) {
-        return new Response(JSON.stringify({ error: "No students provided" }), {
+      if (!Array.isArray(students) || students.length === 0 || students.length > 200) {
+        return new Response(JSON.stringify({ error: "Invalid student list" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const results: any[] = [];
       for (const s of students) {
         const { name, registration_number, password, batch } = s;
-        if (!name || !registration_number || !password) {
-          results.push({ registration_number, success: false, error: "Missing fields" });
+        const vErr = validateStudent({ name, registration_number, password: password?.length >= MIN_PASSWORD_LEN ? password : "Student@123", batch });
+        if (vErr) {
+          results.push({ registration_number: registration_number || "unknown", success: false, error: vErr });
           continue;
         }
         const email = `${registration_number.toLowerCase()}@student.au.edu`;
-        const effectivePassword = password.length >= 6 ? password : "Student@123";
+        const effectivePassword = password?.length >= MIN_PASSWORD_LEN ? password : "Student@123";
 
         const result = await createAuthUser(email, effectivePassword, name, registration_number);
         if (!result.ok) {
-          const errMsg = result.data?.msg || result.data?.message || result.data?.error || "Failed";
+          const errMsg = result.data?.msg || result.data?.message || result.data?.error || "";
           if (typeof errMsg === "string" && errMsg.includes("already been registered")) {
             const recoveredId = await recoverExistingUser(email, effectivePassword, name, registration_number, batch);
             if (recoveredId) {
@@ -174,7 +198,7 @@ Deno.serve(async (req) => {
               continue;
             }
           }
-          results.push({ registration_number, success: false, error: errMsg });
+          results.push({ registration_number, success: false, error: "Failed to create student" });
         } else {
           if (batch && result.data.id) {
             await dbClient.from("profiles").update({ batch }).eq("id", result.data.id);
@@ -189,8 +213,8 @@ Deno.serve(async (req) => {
 
     if (action === "delete") {
       const { student_id } = payload;
-      if (!student_id) {
-        return new Response(JSON.stringify({ error: "Missing student_id" }), {
+      if (!student_id || !validateUUID(student_id)) {
+        return new Response(JSON.stringify({ error: "Invalid student ID" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -199,7 +223,7 @@ Deno.serve(async (req) => {
       await dbClient.from("profiles").delete().eq("id", student_id);
       const deleted = await deleteAuthUser(student_id);
       if (!deleted) {
-        return new Response(JSON.stringify({ error: "Failed to delete auth user" }), {
+        return new Response(JSON.stringify({ error: "Failed to delete student" }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -213,7 +237,7 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("manage-student error:", err);
-    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
