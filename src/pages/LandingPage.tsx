@@ -2,17 +2,34 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import auLogo from "@/assets/au-logo.png";
 
-const FloatingParticle = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
+const ShootingStar = ({ delay, top }: { delay: number; top: string }) => (
   <motion.div
-    className="absolute rounded-full bg-primary/20"
-    style={{ left: x, top: y, width: size, height: size }}
-    animate={{
-      y: [0, -30, 0],
-      opacity: [0.2, 0.5, 0.2],
-      scale: [1, 1.2, 1],
+    className="absolute h-[2px] rounded-full"
+    style={{
+      top,
+      left: "-10%",
+      width: "80px",
+      background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.6), transparent)",
     }}
-    transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut", delay }}
+    animate={{ x: ["0vw", "120vw"] }}
+    transition={{
+      duration: 4 + Math.random() * 3,
+      repeat: Infinity,
+      ease: "linear",
+      delay,
+    }}
+  />
+);
+
+const SmallStar = ({ x, y, delay }: { x: string; y: string; delay: number }) => (
+  <motion.div
+    className="absolute w-1 h-1 rounded-full bg-primary/30"
+    style={{ left: x, top: y }}
+    animate={{ opacity: [0.1, 0.6, 0.1], scale: [0.8, 1.2, 0.8] }}
+    transition={{ duration: 3 + delay, repeat: Infinity, ease: "easeInOut", delay }}
   />
 );
 
@@ -31,20 +48,38 @@ const FloatingOrb = ({ className, delay }: { className: string; delay: number })
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   return (
     <div className="relative min-h-screen gradient-hero overflow-hidden flex items-center justify-center">
-      {/* Particles */}
-      <FloatingParticle delay={0} x="10%" y="20%" size={8} />
-      <FloatingParticle delay={1} x="80%" y="15%" size={6} />
-      <FloatingParticle delay={2} x="60%" y="70%" size={10} />
-      <FloatingParticle delay={0.5} x="25%" y="80%" size={7} />
-      <FloatingParticle delay={1.5} x="90%" y="50%" size={5} />
-      <FloatingParticle delay={3} x="40%" y="30%" size={9} />
-      <FloatingParticle delay={2.5} x="70%" y="85%" size={6} />
-      <FloatingParticle delay={0.8} x="15%" y="55%" size={8} />
-      <FloatingParticle delay={1.2} x="50%" y="10%" size={7} />
-      <FloatingParticle delay={2.2} x="35%" y="90%" size={5} />
+      {/* Shooting stars */}
+      <ShootingStar delay={0} top="8%" />
+      <ShootingStar delay={1.5} top="22%" />
+      <ShootingStar delay={3} top="45%" />
+      <ShootingStar delay={0.8} top="65%" />
+      <ShootingStar delay={2.2} top="80%" />
+      <ShootingStar delay={4} top="35%" />
+      <ShootingStar delay={1} top="55%" />
+      <ShootingStar delay={3.5} top="12%" />
+      <ShootingStar delay={2.8} top="90%" />
+      <ShootingStar delay={0.3} top="72%" />
+
+      {/* Static twinkling stars */}
+      <SmallStar x="5%" y="10%" delay={0} />
+      <SmallStar x="15%" y="30%" delay={0.5} />
+      <SmallStar x="25%" y="60%" delay={1} />
+      <SmallStar x="40%" y="15%" delay={1.5} />
+      <SmallStar x="55%" y="75%" delay={0.3} />
+      <SmallStar x="70%" y="20%" delay={2} />
+      <SmallStar x="80%" y="50%" delay={0.8} />
+      <SmallStar x="90%" y="35%" delay={1.2} />
+      <SmallStar x="35%" y="85%" delay={2.5} />
+      <SmallStar x="60%" y="40%" delay={0.6} />
+      <SmallStar x="85%" y="70%" delay={1.8} />
+      <SmallStar x="10%" y="55%" delay={2.2} />
+      <SmallStar x="50%" y="5%" delay={0.9} />
+      <SmallStar x="75%" y="90%" delay={1.4} />
+      <SmallStar x="95%" y="15%" delay={3} />
 
       {/* Animated gradient orbs */}
       <FloatingOrb delay={0} className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
@@ -57,14 +92,20 @@ const LandingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
+          {/* Logo for mobile, glass icon for desktop */}
           <motion.div
             className="flex justify-center mb-6"
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6 }}
           >
-            <div className="p-4 rounded-2xl glass-card shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-              <GraduationCap className="w-12 h-12 text-primary" />
-            </div>
+            {isMobile ? (
+              <img src={auLogo} alt="Andhra University Students Attendance" className="w-28 h-28 rounded-2xl" />
+            ) : (
+              <div className="p-4 rounded-2xl glass-card shadow-[0_0_40px_rgba(99,102,241,0.15)]">
+                <img src={auLogo} alt="Andhra University Students Attendance" className="w-16 h-16 rounded-xl" />
+              </div>
+            )}
           </motion.div>
 
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 text-foreground">
