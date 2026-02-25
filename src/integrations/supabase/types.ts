@@ -59,6 +59,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          date: string | null
+          id: string
+          message: string
+          read: boolean
+          status: string | null
+          student_id: string
+          subject_name: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          id?: string
+          message: string
+          read?: boolean
+          status?: string | null
+          student_id: string
+          subject_name?: string | null
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          id?: string
+          message?: string
+          read?: boolean
+          status?: string | null
+          student_id?: string
+          subject_name?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           batch: string | null

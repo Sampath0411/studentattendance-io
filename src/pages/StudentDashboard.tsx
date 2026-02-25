@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, BookOpen, UserCheck, UserX, CalendarDays, Filter, Info } from "lucide-react";
+import { LogOut, BookOpen, UserCheck, UserX, CalendarDays, Filter, Info, Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,16 @@ type AttendanceRecord = {
   subject_name: string;
 };
 
+type Notification = {
+  id: string;
+  message: string;
+  status: string | null;
+  subject_name: string | null;
+  date: string | null;
+  read: boolean;
+  created_at: string;
+};
+
 const MIN_RECORDS_FOR_PERCENTAGE = 3;
 
 const StudentDashboard = () => {
@@ -31,14 +41,73 @@ const StudentDashboard = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [filterActive, setFilterActive] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/student-login");
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (user) fetchAttendance();
+    if (user) {
+      fetchAttendance();
+      fetchNotifications();
+      // Subscribe to realtime notifications
+      const channel = supabase
+        .channel('student-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `student_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const newNotif = payload.new as any;
+            setNotifications((prev) => [
+              {
+                id: newNotif.id,
+                message: newNotif.message,
+                status: newNotif.status,
+                subject_name: newNotif.subject_name,
+                date: newNotif.date,
+                read: newNotif.read,
+                created_at: newNotif.created_at,
+              },
+              ...prev,
+            ]);
+            // Show toast for new notification
+            toast(newNotif.message, {
+              icon: newNotif.status === "present" ? "✅" : "❌",
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
+
+  const fetchNotifications = async () => {
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("student_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (data) setNotifications(data as Notification[]);
+  };
+
+  const markAllRead = async () => {
+    const unread = notifications.filter((n) => !n.read).map((n) => n.id);
+    if (unread.length > 0) {
+      await supabase.from("notifications").update({ read: true }).in("id", unread);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    }
+  };
 
   const fetchAttendance = async (from?: string, to?: string) => {
     setLoading(true);
@@ -103,6 +172,8 @@ const StudentDashboard = () => {
     navigate("/");
   };
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   if (authLoading) return <div className="min-h-screen gradient-hero" />;
 
   return (
@@ -121,10 +192,23 @@ const StudentDashboard = () => {
             <p className="text-sm text-muted-foreground">{profile?.registration_number || ""}</p>
           </motion.div>
           <motion.div
+            className="flex items-center gap-2"
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
           >
+            {/* Notification Bell */}
+            <button
+              onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markAllRead(); }}
+              className="relative p-2 rounded-xl hover:bg-card/60 transition-colors"
+            >
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
             <Button
               variant="outline"
               size="sm"
@@ -137,6 +221,52 @@ const StudentDashboard = () => {
           </motion.div>
         </div>
       </header>
+
+      {/* Notification Panel */}
+      <AnimatePresence>
+        {showNotifications && (
+          <motion.div
+            className="fixed top-16 right-4 z-50 w-80 max-h-96 overflow-y-auto glass-elevated rounded-2xl p-4 shadow-[var(--shadow-elevated)]"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-foreground text-sm">Notifications</h3>
+              <button onClick={() => setShowNotifications(false)}>
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            {notifications.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No notifications yet</p>
+            ) : (
+              <div className="space-y-2">
+                {notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`p-3 rounded-xl text-sm transition-colors ${
+                      n.read ? "bg-background/30" : "bg-primary/10 border border-primary/20"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">
+                        {n.status === "present" ? "✅" : n.status === "absent" ? "❌" : "📢"}
+                      </span>
+                      <div>
+                        <p className="text-foreground">{n.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(n.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {/* Today's Classes Banner */}
