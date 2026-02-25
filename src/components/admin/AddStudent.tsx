@@ -13,8 +13,23 @@ const AddStudent = () => {
   const [regNumber, setRegNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [batch, setBatch] = useState("");
-  const [loading, setLoading] = useState(false);
+    const [batch, setBatch] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    // Auto-assign batch based on registration number
+    const getAutoBatch = (reg: string): string => {
+      if (!reg) return "";
+      const num = parseInt(reg.slice(-3), 10);
+      if (num >= 1 && num <= 38) return "1";
+      if (num >= 39 && num <= 75) return "2";
+      return "";
+    };
+
+    const handleRegChange = (val: string) => {
+      setRegNumber(val);
+      const autoBatch = getAutoBatch(val);
+      if (autoBatch) setBatch(autoBatch);
+    };
   const [uploading, setUploading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,7 +134,7 @@ const AddStudent = () => {
             </div>
             <div>
               <Label>Registration Number</Label>
-              <Input value={regNumber} onChange={(e) => setRegNumber(e.target.value)} placeholder="e.g., 322103310001" className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-12" />
+              <Input value={regNumber} onChange={(e) => handleRegChange(e.target.value)} placeholder="e.g., 325506402001" className="mt-1.5 bg-background/50 border-border/50 rounded-xl h-12" />
             </div>
             <div>
               <Label>Password</Label>
