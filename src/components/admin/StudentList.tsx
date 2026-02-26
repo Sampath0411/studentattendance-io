@@ -15,7 +15,7 @@ type Student = {
   batch: string | null;
 };
 
-const StudentList = () => {
+const StudentList = ({ section = "A2" }: { section?: string }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,7 @@ const StudentList = () => {
       .from("profiles")
       .select("id, name, registration_number, section, batch")
       .in("id", studentIds)
+      .eq("section", section)
       .order("registration_number", { ascending: true });
     if (error) toast.error("Failed to fetch students");
     else setStudents((data as Student[]) || []);

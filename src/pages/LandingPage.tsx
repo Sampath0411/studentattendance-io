@@ -5,6 +5,7 @@ import { GraduationCap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import auLogo from "@/assets/au-logo.png";
+import { sections } from "@/data/sectionTimetables";
 
 const ShootingStar = ({ delay, top }: { delay: number; top: string }) => (
   <div
@@ -27,8 +28,6 @@ const SmallStar = ({ x, y, delay }: { x: string; y: string; delay: number }) => 
   />
 );
 
-const sections = ["A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "Women's College"];
-
 const sectionFullNames: Record<string, string> = {
   "A2": "CSSE Section A2",
   "A3": "CSSE Section A3",
@@ -45,6 +44,9 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeSection, setActiveSection] = useState("A2");
+
+  const goToStudentLogin = () => navigate(`/student-login?section=${encodeURIComponent(activeSection)}`);
+  const goToAdminLogin = () => navigate(`/admin-login?section=${encodeURIComponent(activeSection)}`);
 
   return (
     <div className="relative min-h-screen gradient-hero overflow-hidden flex flex-col">
@@ -150,7 +152,7 @@ const LandingPage = () => {
             <Button
               size="lg"
               className="text-base px-8 py-6 rounded-2xl w-full sm:w-auto sm:mx-auto shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_30px_rgba(99,102,241,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              onClick={() => navigate("/student-login")}
+              onClick={goToStudentLogin}
             >
               <GraduationCap className="mr-2 w-5 h-5" />
               Student Login
@@ -159,7 +161,7 @@ const LandingPage = () => {
               variant="outline"
               size="lg"
               className="text-base px-8 py-6 rounded-2xl w-full sm:w-auto sm:mx-auto border-border/50 backdrop-blur-sm hover:bg-card/60 shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_25px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              onClick={() => navigate("/admin-login")}
+              onClick={goToAdminLogin}
             >
               <Shield className="mr-2 w-5 h-5" />
               Admin Login

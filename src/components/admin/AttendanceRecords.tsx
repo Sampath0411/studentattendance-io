@@ -16,7 +16,7 @@ type Record = {
   subject_name: string;
 };
 
-const AttendanceRecords = () => {
+const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");

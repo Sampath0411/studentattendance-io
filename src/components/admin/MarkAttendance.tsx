@@ -7,31 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RotateCcw, Loader2 } from "lucide-react";
+import { sectionConfigs, getBatchFromReg } from "@/data/sectionTimetables";
 
 type Student = { id: string; name: string; registration_number: string | null; batch: string | null };
 type Subject = { id: string; subject_name: string };
 type MarkStatus = "present" | "absent" | "no_class";
 
-const daySubjects: Record<string, string[]> = {
-  Monday: ["LA Lab", "Physics Lab", "Data Structures Using C"],
-  Tuesday: ["Elements of Electronics Engineering", "Mathematics-II", "Self Study / Library"],
-  Wednesday: ["Data Structures Using C", "Physics", "DS Lab", "LA Lab"],
-  Thursday: ["Digital Logic Design", "Mathematics-II", "Physics Lab", "DS Lab"],
-  Friday: ["Digital Logic Design", "Physics", "Elements of Electronics Engineering"],
-  Saturday: ["Self Study / Library", "Swachh Bharat"],
-};
-
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-const getBatchFromReg = (regNumber: string | null): string => {
-  if (!regNumber) return "";
-  const num = parseInt(regNumber.slice(-3), 10);
-  if (num >= 1 && num <= 38) return "Batch 1";
-  if (num >= 39 && num <= 75) return "Batch 2";
-  return "";
-};
-
-const MarkAttendance = () => {
+const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
@@ -40,6 +24,9 @@ const MarkAttendance = () => {
   const [loading, setLoading] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const config = sectionConfigs[section];
+  const daySubjects = config?.daySubjects || {};
 
   useEffect(() => {
     const fetch = async () => {
@@ -53,6 +40,7 @@ const MarkAttendance = () => {
           .from("profiles")
           .select("id, name, registration_number, batch")
           .in("id", ids)
+          .eq("section", section)
           .order("registration_number");
         setStudents((profilesData as Student[]) || []);
         const initial: Record<string, MarkStatus> = {};
@@ -62,9 +50,8 @@ const MarkAttendance = () => {
       setAllSubjects((subjectsRes.data as Subject[]) || []);
     };
     fetch();
-  }, []);
+  }, [section]);
 
-  // Load existing attendance when date+subject changes
   useEffect(() => {
     if (!selectedDate || !selectedSubject || students.length === 0) {
       setIsEditing(false);
@@ -141,7 +128,6 @@ const MarkAttendance = () => {
     }
     setLoading(true);
 
-    // Get subject name for notifications
     const subjectObj = allSubjects.find((s) => s.id === selectedSubject);
     const subjectName = subjectObj?.subject_name || "Unknown";
 
@@ -162,7 +148,6 @@ const MarkAttendance = () => {
     } else {
       toast.success("Attendance saved successfully!");
 
-      // Send notifications to students
       const notifications = students
         .filter((s) => marks[s.id] !== "no_class")
         .map((s) => ({
@@ -183,13 +168,15 @@ const MarkAttendance = () => {
     setLoading(false);
   };
 
-  // Group students by batch
-  const batch1 = students.filter((s) => getBatchFromReg(s.registration_number) === "Batch 1" || s.batch === "1");
-  const batch2 = students.filter((s) => getBatchFromReg(s.registration_number) === "Batch 2" || s.batch === "2");
+  const batch1 = students.filter((s) => getBatchFromReg(s.registration_number, section) === "Batch 1" || s.batch === "1");
+  const batch2 = students.filter((s) => getBatchFromReg(s.registration_number, section) === "Batch 2" || s.batch === "2");
   const otherBatch = students.filter((s) => {
-    const b = getBatchFromReg(s.registration_number);
+    const b = getBatchFromReg(s.registration_number, section);
     return b === "" && s.batch !== "1" && s.batch !== "2";
   });
+
+  const b1Range = config ? `${String(config.batch1Range[0]).padStart(3, "0")}–${String(config.batch1Range[1]).padStart(3, "0")}` : "";
+  const b2Range = config ? `${String(config.batch2Range[0]).padStart(3, "0")}–${String(config.batch2Range[1]).padStart(3, "0")}` : "";
 
   const renderStudentRow = (s: Student) => (
     <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-background/30 hover:bg-background/50 transition-colors">
@@ -256,7 +243,6 @@ const MarkAttendance = () => {
           </div>
         </div>
 
-        {/* Bulk actions */}
         <div className="flex flex-wrap gap-2 mb-4">
           <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={() => markAll("present")}>
             All Present
@@ -282,8 +268,8 @@ const MarkAttendance = () => {
           <p className="text-center text-muted-foreground py-8">No students found. Add students first.</p>
         ) : (
           <div>
-            {renderBatchSection("Batch 1 (001–038)", batch1)}
-            {renderBatchSection("Batch 2 (039–075)", batch2)}
+            {renderBatchSection(`Batch 1 (${b1Range})`, batch1)}
+            {renderBatchSection(`Batch 2 (${b2Range})`, batch2)}
             {renderBatchSection("Other", otherBatch)}
           </div>
         )}
