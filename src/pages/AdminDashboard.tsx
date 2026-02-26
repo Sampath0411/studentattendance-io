@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, UserPlus, Users, ClipboardCheck, FileText, LogOut, Menu, X, ChevronLeft, CalendarDays,
+  LayoutDashboard, UserPlus, Users, ClipboardCheck, FileText, LogOut, ChevronLeft, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,11 +24,13 @@ const navItems = [
 ];
 
 const AdminDashboard = () => {
-  const { user, isAdmin, signOut, loading: authLoading } = useAuth();
+  const { user, isAdmin, profile, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const section = profile?.section || "A2";
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) navigate("/admin-login");
@@ -43,23 +45,23 @@ const AdminDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "dashboard": return <AdminOverview />;
-      case "add-student": return <AddStudent />;
-      case "students": return <StudentList />;
-      case "mark-attendance": return <MarkAttendance />;
-      case "records": return <AttendanceRecords />;
-      case "timetable": return <Timetable />;
-      default: return <AdminOverview />;
+      case "dashboard": return <AdminOverview section={section} />;
+      case "add-student": return <AddStudent section={section} />;
+      case "students": return <StudentList section={section} />;
+      case "mark-attendance": return <MarkAttendance section={section} />;
+      case "records": return <AttendanceRecords section={section} />;
+      case "timetable": return <Timetable section={section} />;
+      default: return <AdminOverview section={section} />;
     }
   };
 
-  // Mobile layout with bottom nav
+  const headerTitle = `Admin Panel — ${section}`;
+
   if (isMobile) {
     return (
       <div className="min-h-screen gradient-hero flex flex-col">
-        {/* Mobile Header */}
         <header className="border-b border-border/30 backdrop-blur-md bg-background/30 p-4 flex items-center justify-between sticky top-0 z-50">
-          <h1 className="font-bold text-foreground text-lg">Admin Panel</h1>
+          <h1 className="font-bold text-foreground text-lg">{headerTitle}</h1>
           <Button
             variant="outline"
             size="sm"
@@ -71,7 +73,6 @@ const AdminDashboard = () => {
           </Button>
         </header>
 
-        {/* Content */}
         <main className="flex-1 p-4 pb-24 overflow-auto">
           <AnimatePresence mode="wait">
             <motion.div
@@ -86,7 +87,6 @@ const AdminDashboard = () => {
           </AnimatePresence>
         </main>
 
-        {/* Floating Bottom Nav */}
         <div className="fixed bottom-4 left-3 right-3 z-50">
           <motion.nav
             className="flex items-center justify-around gap-1 px-2 py-2 rounded-2xl glass-elevated shadow-[0_-4px_30px_rgba(0,0,0,0.2)] border border-border/30"
@@ -114,10 +114,8 @@ const AdminDashboard = () => {
     );
   }
 
-  // Desktop layout with sidebar
   return (
     <div className="min-h-screen gradient-hero flex">
-      {/* Desktop Sidebar */}
       <motion.aside
         className="flex flex-col border-r border-border/30 bg-background/50 backdrop-blur-xl"
         animate={{ width: sidebarOpen ? 250 : 72 }}
@@ -156,10 +154,9 @@ const AdminDashboard = () => {
         </div>
       </motion.aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         <header className="border-b border-border/30 backdrop-blur-md bg-background/30 p-4 flex items-center justify-between sticky top-0 z-40">
-          <h1 className="font-bold text-foreground">Admin Panel</h1>
+          <h1 className="font-bold text-foreground">{headerTitle}</h1>
           <Button
             variant="outline"
             size="sm"

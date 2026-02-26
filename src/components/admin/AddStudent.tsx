@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const AddStudent = () => {
+const AddStudent = ({ section = "A2" }: { section?: string }) => {
   const [name, setName] = useState("");
   const [regNumber, setRegNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +45,7 @@ const AddStudent = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-student", {
-        body: { action: "create", name, registration_number: regNumber, password, batch: batch || null },
+        body: { action: "create", name, registration_number: regNumber, password, batch: batch || null, section },
       });
       if (error || data?.error) {
         toast.error(data?.error || error?.message || "Failed to add student");

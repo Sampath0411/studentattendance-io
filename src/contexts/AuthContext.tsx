@@ -6,7 +6,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
-  profile: { name: string; registration_number: string } | null;
+  profile: { name: string; registration_number: string; section: string | null } | null;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -26,13 +26,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profile, setProfile] = useState<{ name: string; registration_number: string } | null>(null);
+  const [profile, setProfile] = useState<{ name: string; registration_number: string; section: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async (userId: string) => {
     const [roleRes, profileRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("profiles").select("name, registration_number").eq("id", userId).single(),
+      supabase.from("profiles").select("name, registration_number, section").eq("id", userId).single(),
     ]);
 
     if (roleRes.data) {
@@ -44,13 +44,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Use setTimeout to avoid deadlock with Supabase auth
           setTimeout(async () => {
             await fetchUserData(session.user.id);
             setLoading(false);
@@ -63,7 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
