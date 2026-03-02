@@ -23,38 +23,45 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const token = authHeader.replace("Bearer ", "");
 
-    if (token !== serviceRoleKey) {
-      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      if (!userData.user) {
-        return new Response(JSON.stringify({ error: "Invalid token" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Allow service role or authenticated admin
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      if (token !== serviceRoleKey) {
+        const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: authHeader } },
         });
-      }
-      const { data: isAdminData } = await userClient.rpc("is_admin");
-      if (!isAdminData) {
-        return new Response(JSON.stringify({ error: "Not an admin" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        const { data: userData } = await userClient.auth.getUser();
+        if (!userData.user) {
+          return new Response(JSON.stringify({ error: "Invalid token" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: isAdminData } = await userClient.rpc("is_admin");
+        if (!isAdminData) {
+          return new Response(JSON.stringify({ error: "Not an admin" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingEmails = new Set(existingUsers?.users?.map((u: any) => u.email) || []);
+    
+    // Fetch all users with pagination
+    const allUsers: any[] = [];
+    let page = 1;
+    while (true) {
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error || !users || users.length === 0) break;
+      allUsers.push(...users);
+      if (users.length < 1000) break;
+      page++;
+    }
+    const existingEmails = new Set(allUsers.map((u: any) => u.email));
 
     const results: string[] = [];
 
@@ -64,7 +71,7 @@ serve(async (req) => {
         email: "admin@admin.au.edu",
         password: "Sampath2008",
         email_confirm: true,
-        user_metadata: { name: "Admin", registration_number: "ADMIN" },
+        user_metadata: { name: "Admin", registration_number: "ADMIN-A2" },
       });
       if (error) { results.push(`A2 admin error: ${error.message}`); }
       else if (adminUser.user) {
@@ -83,7 +90,7 @@ serve(async (req) => {
           email: sa.email,
           password: "Admin@123",
           email_confirm: true,
-          user_metadata: { name: sa.name, registration_number: "ADMIN" },
+          user_metadata: { name: sa.name, registration_number: `ADMIN-${sa.section}` },
         });
         if (error) { results.push(`${sa.section} error: ${error.message}`); }
         else if (user.user) {

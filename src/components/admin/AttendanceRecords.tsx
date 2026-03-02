@@ -7,7 +7,7 @@ import { Filter, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type Record = {
+type AttRecord = {
   id: string;
   date: string;
   status: string;
@@ -17,7 +17,7 @@ type Record = {
 };
 
 const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<AttRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -25,9 +25,25 @@ const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
 
   const fetchRecords = async (from?: string, to?: string) => {
     setLoading(true);
+
+    // First get student IDs for this section
+    const { data: sectionStudents } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("section", section);
+
+    const studentIds = (sectionStudents || []).map((s: any) => s.id);
+
+    if (studentIds.length === 0) {
+      setRecords([]);
+      setLoading(false);
+      return;
+    }
+
     let query = supabase
       .from("attendance")
       .select("id, date, status, remarks, profiles(name), subjects(subject_name)")
+      .in("student_id", studentIds)
       .order("date", { ascending: false })
       .limit(200);
 
@@ -51,7 +67,7 @@ const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchRecords(); }, []);
+  useEffect(() => { fetchRecords(); }, [section]);
 
   const handleFilter = () => {
     if (startDate && endDate) fetchRecords(startDate, endDate);
@@ -61,14 +77,12 @@ const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
   const handleDeleteAll = async () => {
     if (!confirm("Are you sure you want to delete ALL attendance records? This action cannot be undone.")) return;
     setDeleting(true);
-    // Delete all records visible (filtered or all)
     const ids = records.map((r) => r.id);
     if (ids.length === 0) {
       toast.error("No records to delete");
       setDeleting(false);
       return;
     }
-    // Delete in batches of 100
     for (let i = 0; i < ids.length; i += 100) {
       const batch = ids.slice(i, i + 100);
       const { error } = await supabase.from("attendance").delete().in("id", batch);
@@ -86,7 +100,7 @@ const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">Attendance Records</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Attendance Records — {section}</h1>
       <div className="glass-card rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row gap-4 mb-6 items-end">
           <div className="flex-1 w-full">
