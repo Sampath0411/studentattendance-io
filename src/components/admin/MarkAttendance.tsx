@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RotateCcw, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { sectionConfigs, getBatchFromReg } from "@/data/sectionTimetables";
 
 type Student = { id: string; name: string; registration_number: string | null; batch: string | null };
@@ -32,7 +33,7 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
     const fetch = async () => {
       const [rolesRes, subjectsRes] = await Promise.all([
         supabase.from("user_roles").select("user_id").eq("role", "student"),
-        supabase.from("subjects").select("id, subject_name"),
+        supabase.from("subjects").select("id, subject_name").eq("section", section),
       ]);
       if (rolesRes.data && rolesRes.data.length > 0) {
         const ids = rolesRes.data.map((r: any) => r.user_id);
@@ -122,12 +123,8 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedSubject) {
-      toast.error("Please select a subject");
-      return;
-    }
+    if (!selectedSubject) { toast.error("Please select a subject"); return; }
     setLoading(true);
-
     const subjectObj = allSubjects.find((s) => s.id === selectedSubject);
     const subjectName = subjectObj?.subject_name || "Unknown";
 
@@ -147,7 +144,6 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
       toast.error("Failed to save attendance: " + error.message);
     } else {
       toast.success("Attendance saved successfully!");
-
       const notifications = students
         .filter((s) => marks[s.id] !== "no_class")
         .map((s) => ({
@@ -160,10 +156,7 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
           status: marks[s.id] || "present",
           date: selectedDate,
         }));
-
-      if (notifications.length > 0) {
-        await supabase.from("notifications").insert(notifications);
-      }
+      if (notifications.length > 0) await supabase.from("notifications").insert(notifications);
     }
     setLoading(false);
   };
@@ -178,17 +171,21 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
   const b1Range = config ? `${String(config.batch1Range[0]).padStart(3, "0")}–${String(config.batch1Range[1]).padStart(3, "0")}` : "";
   const b2Range = config ? `${String(config.batch2Range[0]).padStart(3, "0")}–${String(config.batch2Range[1]).padStart(3, "0")}` : "";
 
-  const renderStudentRow = (s: Student) => (
-    <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-background/30 hover:bg-background/50 transition-colors">
-      <div className="flex items-center gap-3">
-        <div>
-          <p className="text-foreground font-medium">{s.name}</p>
-          <p className="text-xs text-muted-foreground font-mono">{s.registration_number}</p>
-        </div>
+  const renderStudentRow = (s: Student, i: number) => (
+    <motion.div
+      key={s.id}
+      className="flex items-center justify-between p-3 rounded-xl bg-background/30 hover:bg-background/50 transition-all duration-200 active:scale-[0.98]"
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: Math.min(i * 0.02, 0.3) }}
+    >
+      <div>
+        <p className="text-foreground font-medium">{s.name}</p>
+        <p className="text-xs text-muted-foreground font-mono">{s.registration_number}</p>
       </div>
-      <button onClick={() => toggleStatus(s.id)}>
+      <button onClick={() => toggleStatus(s.id)} className="active:scale-90 transition-transform">
         <Badge
-          className={`cursor-pointer select-none text-sm px-4 py-1.5 ${
+          className={`cursor-pointer select-none text-sm px-4 py-1.5 transition-all duration-200 ${
             marks[s.id] === "present"
               ? "bg-success/20 text-success border-success/30 hover:bg-success/30"
               : marks[s.id] === "absent"
@@ -199,7 +196,7 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
           {marks[s.id] === "no_class" ? "No Class" : marks[s.id] === "present" ? "Present" : "Absent"}
         </Badge>
       </button>
-    </div>
+    </motion.div>
   );
 
   const renderBatchSection = (title: string, batchStudents: Student[]) => {
@@ -208,7 +205,7 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-1">{title} ({batchStudents.length})</h3>
         <div className="space-y-2">
-          {batchStudents.map(renderStudentRow)}
+          {batchStudents.map((s, i) => renderStudentRow(s, i))}
         </div>
       </div>
     );
@@ -217,12 +214,12 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Mark Attendance</h1>
-        {isEditing && (
-          <Badge className="bg-primary/20 text-primary border-primary/30">Editing</Badge>
-        )}
+        <motion.h1 className="text-2xl font-bold text-foreground" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          Mark Attendance
+        </motion.h1>
+        {isEditing && <Badge className="bg-primary/20 text-primary border-primary/30">Editing</Badge>}
       </div>
-      <div className="glass-card rounded-2xl p-6">
+      <motion.div className="glass-card rounded-2xl p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1">
             <Label>Date</Label>
@@ -244,25 +241,17 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={() => markAll("present")}>
-            All Present
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={() => markAll("absent")}>
-            All Absent
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-xl border-border/50" onClick={() => markAll("no_class")}>
-            No Class
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-xl border-border/50 text-muted-foreground" onClick={clearAll}>
-            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-            Clear Response
+          <Button variant="outline" size="sm" className="rounded-xl border-border/50 active:scale-95 transition-transform" onClick={() => markAll("present")}>All Present</Button>
+          <Button variant="outline" size="sm" className="rounded-xl border-border/50 active:scale-95 transition-transform" onClick={() => markAll("absent")}>All Absent</Button>
+          <Button variant="outline" size="sm" className="rounded-xl border-border/50 active:scale-95 transition-transform" onClick={() => markAll("no_class")}>No Class</Button>
+          <Button variant="outline" size="sm" className="rounded-xl border-border/50 text-muted-foreground active:scale-95 transition-transform" onClick={clearAll}>
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Clear Response
           </Button>
         </div>
 
         {loadingExisting ? (
           <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Loading existing attendance...
+            <Loader2 className="w-5 h-5 animate-spin" /> Loading existing attendance...
           </div>
         ) : students.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No students found. Add students first.</p>
@@ -274,10 +263,10 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
           </div>
         )}
 
-        <Button onClick={handleSubmit} className="w-full mt-6 h-12 rounded-xl" disabled={loading || students.length === 0}>
+        <Button onClick={handleSubmit} className="w-full mt-6 h-12 rounded-xl active:scale-[0.98] transition-transform" disabled={loading || students.length === 0}>
           {loading ? "Saving..." : isEditing ? "Update Attendance" : "Save Attendance"}
         </Button>
-      </div>
+      </motion.div>
     </div>
   );
 };
