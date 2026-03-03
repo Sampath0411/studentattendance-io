@@ -41,7 +41,9 @@ const AdminDashboard = () => {
     navigate("/");
   };
 
-  if (authLoading) return <div className="min-h-screen gradient-hero" />;
+  if (authLoading) return <div className="min-h-screen gradient-hero flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -59,17 +61,16 @@ const AdminDashboard = () => {
 
   if (isMobile) {
     return (
-      <div className="min-h-screen gradient-hero flex flex-col">
+      <div className="min-h-[100dvh] gradient-hero flex flex-col">
         <header className="border-b border-border/30 backdrop-blur-md bg-background/30 p-4 flex items-center justify-between sticky top-0 z-50">
-          <h1 className="font-bold text-foreground text-lg">{headerTitle}</h1>
+          <h1 className="font-bold text-foreground text-lg truncate">{headerTitle}</h1>
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-200"
+            className="rounded-xl border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-200 active:scale-95"
             onClick={handleSignOut}
           >
-            <LogOut className="w-4 h-4 mr-1" />
-            Logout
+            <LogOut className="w-4 h-4 mr-1" /> Logout
           </Button>
         </header>
 
@@ -77,19 +78,19 @@ const AdminDashboard = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
               {renderContent()}
             </motion.div>
           </AnimatePresence>
         </main>
 
-        <div className="fixed bottom-4 left-3 right-3 z-50">
+        <div className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)]">
           <motion.nav
-            className="flex items-center justify-around gap-1 px-2 py-2 rounded-2xl glass-elevated shadow-[0_-4px_30px_rgba(0,0,0,0.2)] border border-border/30"
+            className="flex items-center justify-around gap-0.5 px-2 py-2 mx-3 mb-3 rounded-2xl glass-elevated shadow-[0_-4px_30px_rgba(0,0,0,0.3)] border border-border/30"
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", damping: 20, delay: 0.2 }}
@@ -98,10 +99,10 @@ const AdminDashboard = () => {
               <button
                 key={item.key}
                 onClick={() => setActiveTab(item.key)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[48px] ${
+                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[48px] active:scale-90 ${
                   activeTab === item.key
-                    ? "bg-primary text-primary-foreground scale-105"
-                    : "text-muted-foreground hover:text-foreground active:scale-95"
+                    ? "bg-primary text-primary-foreground scale-105 shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -119,12 +120,21 @@ const AdminDashboard = () => {
       <motion.aside
         className="flex flex-col border-r border-border/30 bg-background/50 backdrop-blur-xl"
         animate={{ width: sidebarOpen ? 250 : 72 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <div className="flex items-center justify-between p-4 border-b border-border/30">
-          {sidebarOpen && <h2 className="font-bold text-foreground text-lg">Admin</h2>}
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-xl">
-            <ChevronLeft className={`w-5 h-5 transition-transform ${!sidebarOpen ? "rotate-180" : ""}`} />
+          {sidebarOpen && (
+            <motion.h2
+              className="font-bold text-foreground text-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              Admin
+            </motion.h2>
+          )}
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-xl hover:bg-card/60">
+            <ChevronLeft className={`w-5 h-5 transition-transform duration-300 ${!sidebarOpen ? "rotate-180" : ""}`} />
           </Button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -132,13 +142,13 @@ const AdminDashboard = () => {
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
                 activeTab === item.key
-                  ? "bg-primary text-primary-foreground shadow-[0_2px_12px_rgba(99,102,241,0.3)]"
+                  ? "bg-primary text-primary-foreground shadow-[0_2px_12px_hsl(var(--primary)/0.3)]"
                   : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
               }`}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon className="w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
               {sidebarOpen && <span>{item.label}</span>}
             </button>
           ))}
@@ -146,7 +156,7 @@ const AdminDashboard = () => {
         <div className="p-3 border-t border-border/30">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition-all duration-200"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition-all duration-200 active:scale-95"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span>Logout</span>}
@@ -163,8 +173,7 @@ const AdminDashboard = () => {
             className="rounded-xl border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-200"
             onClick={handleSignOut}
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            <LogOut className="w-4 h-4 mr-2" /> Logout
           </Button>
         </header>
 

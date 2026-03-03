@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       return resp.ok;
     }
 
-    async function recoverExistingUser(email: string, password: string, name: string, registration_number: string, batch: string | null) {
+    async function recoverExistingUser(email: string, password: string, name: string, registration_number: string, batch: string | null, section?: string) {
       const existing = await findAuthUserByEmail(email);
       if (!existing) return null;
       await updateAuthUser(existing.id, {
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         user_metadata: { name, registration_number },
       });
       await dbClient.from("profiles").upsert({
-        id: existing.id, name, registration_number, batch: batch || null,
+        id: existing.id, name, registration_number, batch: batch || null, section: section || "A2",
       }, { onConflict: "id" });
       const { data: existingRole } = await dbClient.from("user_roles").select("id").eq("user_id", existing.id).eq("role", "student");
       if (!existingRole || existingRole.length === 0) {
@@ -143,13 +143,14 @@ Deno.serve(async (req) => {
         });
       }
       const email = `${registration_number.toLowerCase()}@student.au.edu`;
+      const section = payload.section || "A2";
 
       const result = await createAuthUser(email, password, name, registration_number);
 
       if (!result.ok) {
         const errMsg = result.data?.msg || result.data?.message || result.data?.error || "";
         if (typeof errMsg === "string" && errMsg.includes("already been registered")) {
-          const recoveredId = await recoverExistingUser(email, password, name, registration_number, batch);
+          const recoveredId = await recoverExistingUser(email, password, name, registration_number, batch, section);
           if (recoveredId) {
             return new Response(JSON.stringify({ success: true, user_id: recoveredId, recovered: true }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -162,8 +163,9 @@ Deno.serve(async (req) => {
       }
 
       const userId = result.data.id;
-      if (batch && userId) {
-        await dbClient.from("profiles").update({ batch }).eq("id", userId);
+      const section = payload.section || "A2";
+      if (userId) {
+        await dbClient.from("profiles").update({ batch: batch || null, section }).eq("id", userId);
       }
       return new Response(JSON.stringify({ success: true, user_id: userId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

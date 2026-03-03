@@ -103,6 +103,26 @@ serve(async (req) => {
       }
     }
 
+    // Seed subjects per section
+    const allSections = ["A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"];
+    const commonSubjects = [
+      "LA Lab", "Physics Lab", "Physics Lab (Main)", "Physics Lab (Chemical)",
+      "Data Structures Using C", "Elements of Electronics Engineering",
+      "Mathematics-II", "Self Study / Library", "Physics", "DS Lab",
+      "Data Structures Lab", "Digital Logic Design", "Swachh Bharat",
+      "Linux Admn. Lab",
+    ];
+
+    for (const sec of allSections) {
+      for (const subName of commonSubjects) {
+        await supabaseAdmin.from("subjects").upsert(
+          { subject_name: subName, section: sec },
+          { onConflict: "subject_name,section" }
+        );
+      }
+    }
+    results.push("Subjects seeded per section");
+
     return new Response(JSON.stringify({ message: "Seeding complete", results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
