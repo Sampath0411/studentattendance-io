@@ -12,6 +12,8 @@ import CircularProgress from "@/components/CircularProgress";
 import TodayClassBanner from "@/components/TodayClassBanner";
 import { SkeletonCard, SkeletonTable, SkeletonCircle } from "@/components/Skeletons";
 import { toast } from "sonner";
+import { getUpcomingHolidays } from "@/data/holidays";
+import { CalendarHeart } from "lucide-react";
 
 type AttendanceRecord = {
   id: string;
@@ -269,6 +271,39 @@ const StudentDashboard = () => {
       </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Upcoming Holidays */}
+        {(() => {
+          const upcomingHolidays = getUpcomingHolidays(3);
+          if (upcomingHolidays.length === 0) return null;
+          return (
+            <motion.div
+              className="glass-card rounded-2xl p-5"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarHeart className="w-5 h-5 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Upcoming Holidays</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {upcomingHolidays.map((h, i) => (
+                  <motion.span
+                    key={h.name}
+                    className="px-3 py-1.5 rounded-xl bg-card/50 border border-border/30 text-xs text-muted-foreground backdrop-blur-sm"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 + i * 0.1 }}
+                    whileHover={{ scale: 1.05, borderColor: "hsl(var(--primary) / 0.5)" }}
+                  >
+                    {h.emoji} {h.name}
+                  </motion.span>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })()}
+
         {/* Today's Classes Banner */}
         <TodayClassBanner />
 
