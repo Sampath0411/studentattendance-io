@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Shield, ChevronDown, PartyPopper, CalendarHeart } from "lucide-react";
+import { GraduationCap, Shield, PartyPopper, CalendarHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import auLogo from "@/assets/au-logo.png";
-import { sections } from "@/data/sectionTimetables";
+import { sectionConfigs } from "@/data/sectionTimetables";
 import { getTodayHoliday, getUpcomingHolidays } from "@/data/holidays";
 import ChatBotBubble from "@/components/ChatBotBubble";
+import SectionSelect from "@/components/SectionSelect";
 
 /* ─── Animated Background Particles ─── */
 const FloatingParticle = ({ delay, size, x, y, duration }: { delay: number; size: number; x: string; y: string; duration: number }) => (
@@ -45,23 +46,12 @@ const SmallStar = ({ x, y, delay }: { x: string; y: string; delay: number }) => 
   />
 );
 
-const sectionFullNames: Record<string, string> = {
-  A2: "CSSE Section A2",
-  A3: "CSSE Section A3",
-  A4: "CSSE Section A4",
-  A5: "CSSE Section A5",
-  A6: "CSSE Section A6",
-  A7: "CSSE Section A7",
-  A8: "CSSE Section A8",
-  A9: "CSSE Section A9",
-  "Women's College": "Women's College",
-};
+const getSectionLabel = (section: string) => sectionConfigs[section]?.fullName ?? section;
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeSection, setActiveSection] = useState("A2");
-  const [sectionOpen, setSectionOpen] = useState(false);
   const [bgPhase, setBgPhase] = useState(0);
 
   const todayHoliday = getTodayHoliday();
@@ -85,7 +75,7 @@ const LandingPage = () => {
   const goToAdminLogin = () => navigate(`/admin-login?section=${encodeURIComponent(activeSection)}`);
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex flex-col">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
       {/* Animated background */}
       <motion.div
         className="absolute inset-0 z-0"
@@ -211,7 +201,7 @@ const LandingPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                AU College of Engineering – {sectionFullNames[activeSection]}
+                AU College of Engineering – {getSectionLabel(activeSection)}
               </motion.p>
               <motion.p
                 className="text-xs sm:text-sm text-muted-foreground mb-6"
@@ -224,61 +214,18 @@ const LandingPage = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Section Selector Dropdown */}
+          {/* Section Selector */}
           <motion.div
-            className="relative inline-block mb-8"
+            className="mb-8 flex justify-center"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <motion.button
-              onClick={() => setSectionOpen(!sectionOpen)}
-              className="flex items-center gap-2 px-5 py-3 rounded-2xl glass-card border border-border/50 text-sm font-medium text-foreground hover:border-primary/50 transition-all duration-300"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <GraduationCap className="w-4 h-4 text-primary" />
-              <span>Section: <span className="text-primary font-bold">{activeSection}</span></span>
-              <motion.div animate={{ rotate: sectionOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </motion.div>
-            </motion.button>
-
-            <AnimatePresence>
-              {sectionOpen && (
-                <motion.div
-                  className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 rounded-2xl glass-elevated border border-border/50 overflow-hidden z-[60]"
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.2, type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <div className="p-2 max-h-72 overflow-y-auto scrollbar-hide">
-                    {sections.map((section, i) => (
-                      <motion.button
-                        key={section}
-                        onClick={() => {
-                          setActiveSection(section);
-                          setSectionOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                          activeSection === section
-                            ? "bg-primary text-primary-foreground"
-                            : "text-foreground hover:bg-card/60"
-                        }`}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.03 }}
-                        whileHover={{ x: 4 }}
-                      >
-                        {section}
-                        <span className="text-xs ml-2 opacity-60">{sectionFullNames[section]}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <SectionSelect
+              value={activeSection}
+              onChange={setActiveSection}
+              triggerClassName="min-w-[16rem] sm:min-w-[20rem]"
+            />
           </motion.div>
 
           {/* Action Buttons */}
@@ -291,10 +238,10 @@ const LandingPage = () => {
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 size="lg"
-                className="text-base px-8 py-6 rounded-2xl w-full sm:w-auto sm:mx-auto shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_30px_rgba(99,102,241,0.35)] transition-all duration-300"
+                className="w-full rounded-2xl border border-primary/40 bg-gradient-to-r from-primary to-accent px-8 py-6 text-base text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-300 hover:brightness-110 sm:mx-auto sm:w-auto"
                 onClick={goToStudentLogin}
               >
-                <GraduationCap className="mr-2 w-5 h-5" />
+                <GraduationCap className="mr-2 h-5 w-5" />
                 Student Login
               </Button>
             </motion.div>
@@ -302,10 +249,10 @@ const LandingPage = () => {
               <Button
                 variant="outline"
                 size="lg"
-                className="text-base px-8 py-6 rounded-2xl w-full sm:w-auto sm:mx-auto border-border/50 backdrop-blur-sm hover:bg-card/60 shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_25px_rgba(0,0,0,0.15)] transition-all duration-300"
+                className="w-full rounded-2xl border-border/60 bg-card/60 px-8 py-6 text-base backdrop-blur-md transition-all duration-300 hover:border-primary/50 hover:bg-card sm:mx-auto sm:w-auto"
                 onClick={goToAdminLogin}
               >
-                <Shield className="mr-2 w-5 h-5" />
+                <Shield className="mr-2 h-5 w-5" />
                 Admin Login
               </Button>
             </motion.div>
@@ -361,10 +308,6 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* Close section dropdown on outside click — must be BELOW the dropdown's z-index */}
-      {sectionOpen && (
-        <div className="fixed inset-0 z-[45]" onClick={() => setSectionOpen(false)} />
-      )}
 
       {/* Chat Bot */}
       <ChatBotBubble />
