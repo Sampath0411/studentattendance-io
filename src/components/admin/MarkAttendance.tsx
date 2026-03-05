@@ -7,12 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RotateCcw, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { sectionConfigs, getBatchFromReg } from "@/data/sectionTimetables";
 
 type Student = { id: string; name: string; registration_number: string | null; batch: string | null };
 type Subject = { id: string; subject_name: string };
 type MarkStatus = "present" | "absent" | "no_class";
+
+const labSubjectKeywords = ["lab", "Lab"];
+const isLabSubject = (name: string) => labSubjectKeywords.some((kw) => name.toLowerCase().includes(kw.toLowerCase()));
 
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -25,6 +28,7 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
   const [loading, setLoading] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<"all" | "1" | "2">("all");
 
   const config = sectionConfigs[section];
   const daySubjects = config?.daySubjects || {};
@@ -111,14 +115,14 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
   };
 
   const markAll = (status: MarkStatus) => {
-    const updated: Record<string, MarkStatus> = {};
-    students.forEach((s) => { updated[s.id] = status; });
+    const updated: Record<string, MarkStatus> = { ...marks };
+    displayStudents.forEach((s) => { updated[s.id] = status; });
     setMarks(updated);
   };
 
   const clearAll = () => {
-    const cleared: Record<string, MarkStatus> = {};
-    students.forEach((s) => { cleared[s.id] = "present"; });
+    const cleared: Record<string, MarkStatus> = { ...marks };
+    displayStudents.forEach((s) => { cleared[s.id] = "present"; });
     setMarks(cleared);
   };
 
@@ -161,9 +165,21 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
     setLoading(false);
   };
 
-  const batch1 = students.filter((s) => getBatchFromReg(s.registration_number, section) === "Batch 1" || s.batch === "1");
-  const batch2 = students.filter((s) => getBatchFromReg(s.registration_number, section) === "Batch 2" || s.batch === "2");
-  const otherBatch = students.filter((s) => {
+  // Determine if the selected subject is a lab
+  const selectedSubjectObj = allSubjects.find((s) => s.id === selectedSubject);
+  const isLab = selectedSubjectObj ? isLabSubject(selectedSubjectObj.subject_name) : false;
+
+  // Get students filtered by batch if lab + batch selected
+  const displayStudents = isLab && selectedBatch !== "all"
+    ? students.filter((s) => {
+        const b = getBatchFromReg(s.registration_number, section);
+        return b === `Batch ${selectedBatch}` || s.batch === selectedBatch;
+      })
+    : students;
+
+  const batch1 = displayStudents.filter((s) => getBatchFromReg(s.registration_number, section) === "Batch 1" || s.batch === "1");
+  const batch2 = displayStudents.filter((s) => getBatchFromReg(s.registration_number, section) === "Batch 2" || s.batch === "2");
+  const otherBatch = displayStudents.filter((s) => {
     const b = getBatchFromReg(s.registration_number, section);
     return b === "" && s.batch !== "1" && s.batch !== "2";
   });
@@ -239,6 +255,32 @@ const MarkAttendance = ({ section = "A2" }: { section?: string }) => {
             </Select>
           </div>
         </div>
+
+        {/* Batch selector for lab subjects */}
+        <AnimatePresence>
+          {isLab && (
+            <motion.div
+              className="flex flex-wrap gap-2 mb-4"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Label className="flex items-center text-sm text-muted-foreground mr-2">Lab Batch:</Label>
+              {(["all", "1", "2"] as const).map((b) => (
+                <Button
+                  key={b}
+                  variant={selectedBatch === b ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-xl border-border/50 active:scale-95 transition-all"
+                  onClick={() => setSelectedBatch(b)}
+                >
+                  {b === "all" ? "All Students" : `Batch ${b}`}
+                </Button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="flex flex-wrap gap-2 mb-4">
           <Button variant="outline" size="sm" className="rounded-xl border-border/50 active:scale-95 transition-transform" onClick={() => markAll("present")}>All Present</Button>
