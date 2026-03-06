@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, UserPlus, Users, ClipboardCheck, FileText, LogOut, ChevronLeft, CalendarDays,
+  LayoutDashboard, UserPlus, Users, ClipboardCheck, FileText, LogOut, ChevronLeft, CalendarDays, Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,11 +13,13 @@ import StudentList from "@/components/admin/StudentList";
 import MarkAttendance from "@/components/admin/MarkAttendance";
 import AttendanceRecords from "@/components/admin/AttendanceRecords";
 import Timetable from "@/components/admin/Timetable";
+import StudentDataTab from "@/components/admin/StudentData";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "add-student", label: "Add", icon: UserPlus },
   { key: "students", label: "Students", icon: Users },
+  { key: "student-data", label: "Data", icon: Database },
   { key: "mark-attendance", label: "Attendance", icon: ClipboardCheck },
   { key: "records", label: "Records", icon: FileText },
   { key: "timetable", label: "Timetable", icon: CalendarDays },
@@ -50,6 +52,7 @@ const AdminDashboard = () => {
       case "dashboard": return <AdminOverview section={section} />;
       case "add-student": return <AddStudent section={section} />;
       case "students": return <StudentList section={section} />;
+      case "student-data": return <StudentDataTab section={section} />;
       case "mark-attendance": return <MarkAttendance section={section} />;
       case "records": return <AttendanceRecords section={section} />;
       case "timetable": return <Timetable section={section} />;

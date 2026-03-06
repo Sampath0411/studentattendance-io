@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, BookOpen, UserCheck, UserX, CalendarDays, Filter, Info, Bell, X } from "lucide-react";
+import { LogOut, BookOpen, UserCheck, UserX, CalendarDays, Filter, Info, Bell, X, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,8 @@ import { SkeletonCard, SkeletonTable, SkeletonCircle } from "@/components/Skelet
 import { toast } from "sonner";
 import { getUpcomingHolidays } from "@/data/holidays";
 import { CalendarHeart } from "lucide-react";
+import ProfileCompletionDialog from "@/components/ProfileCompletionDialog";
+import { useWebAuthn } from "@/hooks/useWebAuthn";
 
 type AttendanceRecord = {
   id: string;
@@ -36,7 +38,7 @@ type Notification = {
 const MIN_RECORDS_FOR_PERCENTAGE = 3;
 
 const StudentDashboard = () => {
-  const { user, profile, signOut, loading: authLoading } = useAuth();
+  const { user, profile, signOut, loading: authLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +47,20 @@ const StudentDashboard = () => {
   const [filterActive, setFilterActive] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileCompletion, setShowProfileCompletion] = useState(false);
+
+  const { isSupported: biometricSupported, registerFingerprint } = useWebAuthn();
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/student-login");
   }, [user, authLoading, navigate]);
+
+  // Check if profile needs completion (missing mobile or email)
+  useEffect(() => {
+    if (profile && user && (!profile.mobile_number || !profile.email)) {
+      setShowProfileCompletion(true);
+    }
+  }, [profile, user]);
 
   useEffect(() => {
     if (user) {
@@ -178,8 +190,26 @@ const StudentDashboard = () => {
 
   if (authLoading) return <div className="min-h-screen gradient-hero" />;
 
+  const handleSetupFingerprint = async () => {
+    if (user && profile?.registration_number) {
+      const success = await registerFingerprint(user.id, profile.registration_number);
+      if (success) toast.success("Fingerprint login enabled! You can now use it on the login screen.");
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-hero">
+      {/* Profile Completion Dialog */}
+      {showProfileCompletion && user && (
+        <ProfileCompletionDialog
+          userId={user.id}
+          currentBatch={profile?.batch || null}
+          onComplete={() => {
+            setShowProfileCompletion(false);
+            refreshProfile();
+          }}
+        />
+      )}
       {/* Header */}
       <header className="border-b border-border/30 backdrop-blur-md bg-background/30 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -199,6 +229,16 @@ const StudentDashboard = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
           >
+            {/* Fingerprint Setup */}
+            {biometricSupported && (
+              <button
+                onClick={handleSetupFingerprint}
+                className="p-2 rounded-xl hover:bg-card/60 transition-colors"
+                title="Setup fingerprint login"
+              >
+                <Fingerprint className="w-5 h-5 text-muted-foreground" />
+              </button>
+            )}
             {/* Notification Bell */}
             <button
               onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markAllRead(); }}
