@@ -55,10 +55,14 @@ const StudentDashboard = () => {
     if (!authLoading && !user) navigate("/student-login");
   }, [user, authLoading, navigate]);
 
-  // Check if profile needs completion (missing mobile or email)
+  // Check if profile needs completion (missing mobile or email) — only once
   useEffect(() => {
-    if (profile && user && (!profile.mobile_number || !profile.email)) {
-      setShowProfileCompletion(true);
+    if (profile && user) {
+      const completedKey = `profile-completed-${user.id}`;
+      const alreadyCompleted = localStorage.getItem(completedKey);
+      if (!alreadyCompleted && (!profile.mobile_number || !profile.email)) {
+        setShowProfileCompletion(true);
+      }
     }
   }, [profile, user]);
 
@@ -205,6 +209,7 @@ const StudentDashboard = () => {
           userId={user.id}
           currentBatch={profile?.batch || null}
           onComplete={() => {
+            localStorage.setItem(`profile-completed-${user.id}`, "true");
             setShowProfileCompletion(false);
             refreshProfile();
           }}
