@@ -2,13 +2,23 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+type ProfileType = {
+  name: string;
+  registration_number: string;
+  section: string | null;
+  batch: string | null;
+  mobile_number: string | null;
+  email: string | null;
+};
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
-  profile: { name: string; registration_number: string; section: string | null } | null;
+  profile: ProfileType | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -26,21 +37,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profile, setProfile] = useState<{ name: string; registration_number: string; section: string | null } | null>(null);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async (userId: string) => {
     const [roleRes, profileRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("profiles").select("name, registration_number, section").eq("id", userId).single(),
+      supabase.from("profiles").select("name, registration_number, section, batch, mobile_number, email").eq("id", userId).single(),
     ]);
 
     if (roleRes.data) {
       setIsAdmin(roleRes.data.some((r: any) => r.role === "admin"));
     }
     if (profileRes.data) {
-      setProfile(profileRes.data as any);
+      setProfile(profileRes.data as ProfileType);
     }
+  };
+
+  const refreshProfile = async () => {
+    if (user) await fetchUserData(user.id);
   };
 
   useEffect(() => {
@@ -83,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, profile, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

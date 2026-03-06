@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, ArrowLeft, Eye, EyeOff, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import LoginSuccessOverlay from "@/components/LoginSuccessOverlay";
+import { useWebAuthn } from "@/hooks/useWebAuthn";
 
 const FloatingOrb = ({ className, delay }: { className: string; delay: number }) => (
   <div
@@ -33,6 +34,9 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const { isSupported, authenticateFingerprint, hasStoredCredential } = useWebAuthn();
+  const showBiometric = isSupported && hasStoredCredential();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regNumber.trim() || !password.trim()) {
@@ -55,6 +59,30 @@ const StudentLogin = () => {
       }
     } catch {
       toast.error("An error occurred");
+    }
+    setLoading(false);
+  };
+
+  const handleBiometricLogin = async () => {
+    setLoading(true);
+    const result = await authenticateFingerprint();
+    if (result) {
+      // We have the reg number, now try to login with saved credentials
+      const saved = localStorage.getItem(`student-login-${section}`);
+      if (saved) {
+        const { regNumber: savedReg, password: savedPass } = JSON.parse(saved);
+        const email = `${savedReg.toLowerCase()}@student.au.edu`;
+        const { error } = await supabase.auth.signInWithPassword({ email, password: savedPass });
+        if (error) {
+          toast.error("Biometric verified but credentials expired. Please login manually.");
+        } else {
+          setShowSuccess(true);
+        }
+      } else {
+        toast.error("No saved credentials found. Please login manually first and enable 'Save Login'.");
+      }
+    } else {
+      toast.error("Fingerprint authentication cancelled");
     }
     setLoading(false);
   };
@@ -89,6 +117,32 @@ const StudentLogin = () => {
             <h1 className="text-2xl font-bold text-foreground">Student Login</h1>
             <p className="text-muted-foreground text-sm mt-1">CSSE Section {section}</p>
           </div>
+
+          {/* Biometric Login Button */}
+          {showBiometric && (
+            <motion.div
+              className="mb-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-14 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 active:scale-[0.98] flex items-center gap-3"
+                onClick={handleBiometricLogin}
+                disabled={loading}
+              >
+                <Fingerprint className="w-6 h-6 text-primary" />
+                <span className="text-base font-medium">Login with Fingerprint</span>
+              </Button>
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-border/50" />
+                <span className="text-xs text-muted-foreground">or use credentials</span>
+                <div className="flex-1 h-px bg-border/50" />
+              </div>
+            </motion.div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>

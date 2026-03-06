@@ -99,7 +99,9 @@ export type Database = {
         Row: {
           batch: string | null
           created_at: string
+          email: string | null
           id: string
+          mobile_number: string | null
           name: string
           registration_number: string | null
           section: string | null
@@ -107,7 +109,9 @@ export type Database = {
         Insert: {
           batch?: string | null
           created_at?: string
+          email?: string | null
           id: string
+          mobile_number?: string | null
           name: string
           registration_number?: string | null
           section?: string | null
@@ -115,7 +119,9 @@ export type Database = {
         Update: {
           batch?: string | null
           created_at?: string
+          email?: string | null
           id?: string
+          mobile_number?: string | null
           name?: string
           registration_number?: string | null
           section?: string | null
