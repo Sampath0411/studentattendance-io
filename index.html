@@ -2,29 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Student Attendance Portal A2 | AU College of Engineering</title>
     <meta name="description" content="Student Attendance Portal for AU College of Engineering, CSSE Section A2">
     <meta name="author" content="AU College of Engineering" />
+    <meta name="theme-color" content="#1a2332" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-    
-    
+    <!-- Preload critical fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" />
+
+    <!-- DNS prefetch for API -->
+    <link rel="dns-prefetch" href="https://bzhsglpfadpxpziwswwu.supabase.co" />
+
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/88d7e99a-6fc5-4809-9d25-fc5166a8c8fa?Expires=1771818345&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=L31hX%2Bx2VUzPieawnITcs5kd25BQ94xReoRlXGZ66EfPjUuaapqEAHxaLJdkCvCuvv5MPWc7%2BboQTXaUe7b9%2BZb%2ByCIMfOAIT%2F8Ymw%2BE1uw1dvyNqAifnt%2FXgldU180qDf6P1rUThmCTUg4fP3xEt%2F98CUNZULAR9QqACySEDV4cpQilbd6bvMDGXInGTKcVSKqo0vz%2B6jXtlANtPSZCJ3mG%2FQVnTsvyGjG0x8ts%2BDJOMAsKk39zLkI2rvrRFBaqy3naS29iA48Gn4SMHvFJnBMjXy9R44V9k15Cu%2B0F7LqviErI0h6UCkYxERttfWcijoA4vqPb1REU8kXCMFQhZQ%3D%3D">
-
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/88d7e99a-6fc5-4809-9d25-fc5166a8c8fa?Expires=1771818345&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=L31hX%2Bx2VUzPieawnITcs5kd25BQ94xReoRlXGZ66EfPjUuaapqEAHxaLJdkCvCuvv5MPWc7%2BboQTXaUe7b9%2BZb%2ByCIMfOAIT%2F8Ymw%2BE1uw1dvyNqAifnt%2FXgldU180qDf6P1rUThmCTUg4fP3xEt%2F98CUNZULAR9QqACySEDV4cpQilbd6bvMDGXInGTKcVSKqo0vz%2B6jXtlANtPSZCJ3mG%2FQVnTsvyGjG0x8ts%2BDJOMAsKk39zLkI2rvrRFBaqy3naS29iA48Gn4SMHvFJnBMjXy9R44V9k15Cu%2B0F7LqviErI0h6UCkYxERttfWcijoA4vqPb1REU8kXCMFQhZQ%3D%3D">
-    
-  
-  
-  
-  <meta property="og:title" content="Student Attendance Portal A2 | AU College of Engineering">
-  <meta name="twitter:title" content="Student Attendance Portal A2 | AU College of Engineering">
-  <meta property="og:description" content="Student Attendance Portal for AU College of Engineering, CSSE Section A2">
-  <meta name="twitter:description" content="Student Attendance Portal for AU College of Engineering, CSSE Section A2">
-</head>
-<script type="text/javascript">
+    <meta property="og:title" content="Student Attendance Portal A2 | AU College of Engineering">
+    <meta name="twitter:title" content="Student Attendance Portal A2 | AU College of Engineering">
+    <meta property="og:description" content="Student Attendance Portal for AU College of Engineering, CSSE Section A2">
+    <meta name="twitter:description" content="Student Attendance Portal for AU College of Engineering, CSSE Section A2">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://studentattendance-io.lovable.app/" />
+  </head>
+  <script type="text/javascript">
     (function (l) {
       if (l.search[1] === "/") {
         var decoded = l.search
