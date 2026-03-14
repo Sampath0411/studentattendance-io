@@ -4,7 +4,7 @@
  * Import: parses CSV files (users can save .xlsx as .csv from Excel).
  */
 
-import { sanitizeInput } from "@/lib/sanitize";
+import { stripHtml } from "@/lib/sanitize";
 
 // ── Export ──────────────────────────────────────────────────────────
 
