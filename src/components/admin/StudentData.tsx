@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { exportToCSV } from "@/lib/excel";
 import { motion } from "framer-motion";
 
 type StudentData = {
