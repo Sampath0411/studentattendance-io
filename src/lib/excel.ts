@@ -93,7 +93,7 @@ export function parseCSV(text: string): Record<string, string>[] {
     const cells = parseCSVLine(lines[i]);
     const row: Record<string, string> = {};
     headers.forEach((header, idx) => {
-      row[header] = sanitizeInput(cells[idx] ?? "");
+      row[header] = stripHtml((cells[idx] ?? "").trim());
     });
     rows.push(row);
   }
