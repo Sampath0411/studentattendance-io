@@ -7,7 +7,7 @@ import { Filter, Trash2, Download, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import * as XLSX from "xlsx";
+import { exportToCSV } from "@/lib/excel";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -99,11 +99,8 @@ const AttendanceRecords = ({ section = "A2" }: { section?: string }) => {
       Status: r.status === "no_class" ? "No Class" : r.status.charAt(0).toUpperCase() + r.status.slice(1),
       Remarks: r.remarks || "",
     }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-    XLSX.writeFile(wb, `Attendance_${section}_${new Date().toISOString().split("T")[0]}.xlsx`);
-    toast.success("Excel exported!");
+    exportToCSV(data, `Attendance_${section}_${new Date().toISOString().split("T")[0]}.csv`);
+    toast.success("CSV exported!");
   };
 
   const exportPDF = () => {

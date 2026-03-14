@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { exportToCSV } from "@/lib/excel";
 import { motion } from "framer-motion";
 
 type StudentData = {
@@ -98,11 +98,8 @@ const StudentDataTab = ({ section = "A2" }: { section?: string }) => {
       "Section": s.section || section,
       "Attendance %": s.attendance_percentage !== null ? `${s.attendance_percentage}%` : "N/A",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
-    XLSX.writeFile(wb, `Students_Data_${section}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success("Excel file downloaded!");
+    exportToCSV(rows, `Students_Data_${section}_${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success("CSV file downloaded!");
   };
 
   // Send alert for students below 75%
