@@ -140,14 +140,14 @@ const AddStudent = ({ section = "A2" }: { section?: string }) => {
         </motion.div>
 
         <motion.div className="glass-card rounded-2xl p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Bulk Upload from Excel</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-3">Bulk Upload from CSV</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Upload an Excel file (.xlsx) with columns: <strong>Name</strong>, <strong>Registration Number</strong>, <strong>Password</strong> (optional), <strong>Batch</strong> (optional).
+            Upload a CSV file with columns: <strong>Name</strong>, <strong>Registration Number</strong>, <strong>Password</strong> (optional), <strong>Batch</strong> (optional).
           </p>
           <label className="flex items-center justify-center gap-2 w-full h-12 rounded-xl border-2 border-dashed border-border/50 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all active:scale-[0.98]">
             <Upload className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{uploading ? "Uploading..." : "Choose Excel file"}</span>
-            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleExcelUpload} disabled={uploading} />
+            <span className="text-sm text-muted-foreground">{uploading ? "Uploading..." : "Choose CSV file"}</span>
+            <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} disabled={uploading} />
           </label>
         </motion.div>
       </div>
