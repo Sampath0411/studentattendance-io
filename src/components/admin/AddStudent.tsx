@@ -57,16 +57,14 @@ const AddStudent = ({ section = "A2" }: { section?: string }) => {
     setLoading(false);
   };
 
-  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
-      if (rows.length === 0) { toast.error("Excel file is empty"); setUploading(false); return; }
+      const text = await readFileAsText(file);
+      const rows = parseCSV(text);
+      if (rows.length === 0) { toast.error("CSV file is empty or invalid"); setUploading(false); return; }
       const students = rows.map((row) => {
         const keys = Object.keys(row);
         const get = (patterns: string[]) => {
@@ -92,7 +90,7 @@ const AddStudent = ({ section = "A2" }: { section?: string }) => {
         toast.success(`${successes} students added successfully!`);
         failures.forEach((f: any) => toast.error(`${f.registration_number}: ${f.error}`));
       }
-    } catch { toast.error("Failed to parse Excel file"); }
+    } catch { toast.error("Failed to parse CSV file"); }
     setUploading(false);
     e.target.value = "";
   };
