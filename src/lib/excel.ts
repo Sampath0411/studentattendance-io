@@ -86,7 +86,7 @@ export function parseCSV(text: string): Record<string, string>[] {
 
   if (lines.length < 2) return [];
 
-  const headers = parseCSVLine(lines[0]).map((h) => sanitizeInput(h));
+  const headers = parseCSVLine(lines[0]).map((h) => stripHtml(h.trim()));
   const rows: Record<string, string>[] = [];
 
   for (let i = 1; i < lines.length; i++) {
