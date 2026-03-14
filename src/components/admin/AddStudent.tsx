@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, EyeOff, Upload } from "lucide-react";
 import { motion } from "framer-motion";
-import * as XLSX from "xlsx";
+import { parseCSV, readFileAsText } from "@/lib/excel";
 import { sectionConfigs } from "@/data/sectionTimetables";
 
 const AddStudent = ({ section = "A2" }: { section?: string }) => {
